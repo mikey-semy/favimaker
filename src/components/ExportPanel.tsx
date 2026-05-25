@@ -56,12 +56,13 @@ export function ExportPanel() {
       </details>
 
       <div className="text-[11px] text-muted leading-relaxed">
-        В ZIP-архиве:
+        В ZIP-архиве (14 файлов):
         <ul className="mt-1 space-y-0.5 list-disc list-inside marker:text-muted/50">
-          <li>favicon.ico (16+32+48 в одном файле)</li>
-          <li>PNG 16, 32, 180, 192, 512 px</li>
-          <li>site.webmanifest</li>
-          <li>HTML-сниппет для вставки в &lt;head&gt;</li>
+          <li>favicon.ico (16+32+48 в одном)</li>
+          <li>PNG: 16, 32, 96, 150, 180, 192, 512</li>
+          <li>maskable PNG: 192, 512 (Android-форма)</li>
+          <li>site.webmanifest + browserconfig.xml</li>
+          <li>HTML-сниппет для &lt;head&gt;</li>
         </ul>
       </div>
     </div>

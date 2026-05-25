@@ -13,7 +13,12 @@ import {
   Share2,
 } from "lucide-react";
 import { useConfig } from "@/lib/store";
-import { POPULAR_FONTS, loadGoogleFont } from "@/lib/google-fonts";
+import {
+  POPULAR_FONTS,
+  fetchAllFonts,
+  loadGoogleFont,
+  type GoogleFont,
+} from "@/lib/google-fonts";
 import { Button, ColorInput, Select, Slider, SegmentedControl, TextInput } from "./inputs";
 import { Field, FieldRow } from "./Field";
 import { DEFAULT_CONFIG } from "@/lib/types";
@@ -279,39 +284,105 @@ export function Editor() {
 
 function FontPicker() {
   const { config, set } = useConfig();
+  const [allFonts, setAllFonts] = React.useState<GoogleFont[] | null>(null);
+  const [loadingAll, setLoadingAll] = React.useState(false);
+  const [search, setSearch] = React.useState("");
+  const [cyrillicOnly, setCyrillicOnly] = React.useState(false);
+
+  // Подгружаем выбранный шрифт перед canvas-рендером
   React.useEffect(() => {
-    const font = POPULAR_FONTS.find((f) => f.family === config.fontFamily);
+    const list = allFonts ?? POPULAR_FONTS;
+    const font = list.find((f) => f.family === config.fontFamily);
     if (font) loadGoogleFont(config.fontFamily, font.weights);
-  }, [config.fontFamily]);
+  }, [config.fontFamily, allFonts]);
+
+  const onLoadAll = async () => {
+    setLoadingAll(true);
+    try {
+      const fonts = await fetchAllFonts();
+      setAllFonts(fonts);
+    } catch {
+      // не удалось — остаёмся на курируемом списке
+    } finally {
+      setLoadingAll(false);
+    }
+  };
+
+  const source = allFonts ?? POPULAR_FONTS;
+  const filtered = React.useMemo(() => {
+    let list = source;
+    if (cyrillicOnly) list = list.filter((f) => f.cyrillic);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter((f) => f.family.toLowerCase().includes(q));
+    }
+    // Сортируем по category → имени
+    return [...list].sort((a, b) => {
+      if (a.category !== b.category) return a.category.localeCompare(b.category);
+      return a.family.localeCompare(b.family);
+    });
+  }, [source, search, cyrillicOnly]);
+
+  const grouped = React.useMemo(() => {
+    const map = new Map<GoogleFont["category"], GoogleFont[]>();
+    for (const f of filtered) {
+      const arr = map.get(f.category) ?? [];
+      arr.push(f);
+      map.set(f.category, arr);
+    }
+    return map;
+  }, [filtered]);
+
+  const categoryLabel: Record<GoogleFont["category"], string> = {
+    "sans-serif": "Sans-serif",
+    display: "Display",
+    serif: "Serif",
+    monospace: "Monospace",
+    handwriting: "Handwriting",
+  };
 
   return (
-    <Field label="Шрифт">
-      <Select
-        value={config.fontFamily}
-        onChange={(e) => set("fontFamily", e.target.value)}
+    <div className="space-y-2">
+      <Field
+        label={`Шрифт (${filtered.length}${allFonts ? ` из ${allFonts.length}` : "+"})`}
       >
-        {(["sans-serif", "display", "serif", "monospace"] as const).map((cat) => (
-          <optgroup
-            key={cat}
-            label={
-              cat === "sans-serif"
-                ? "Sans-serif"
-                : cat === "display"
-                  ? "Display"
-                  : cat === "serif"
-                    ? "Serif"
-                    : "Monospace"
-            }
-          >
-            {POPULAR_FONTS.filter((f) => f.category === cat).map((f) => (
-              <option key={f.family} value={f.family}>
-                {f.family} {f.cyrillic ? "" : "(latin)"}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-      </Select>
-    </Field>
+        <Select value={config.fontFamily} onChange={(e) => set("fontFamily", e.target.value)}>
+          {Array.from(grouped.entries()).map(([cat, fonts]) => (
+            <optgroup key={cat} label={categoryLabel[cat]}>
+              {fonts.map((f) => (
+                <option key={f.family} value={f.family}>
+                  {f.family}
+                  {f.cyrillic ? "" : " (latin)"}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </Select>
+      </Field>
+
+      <FieldRow>
+        <TextInput
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Поиск..."
+        />
+        <label className="flex items-center gap-2 px-3 text-xs text-ink-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={cyrillicOnly}
+            onChange={(e) => setCyrillicOnly(e.target.checked)}
+            className="accent-accent"
+          />
+          Только кириллица
+        </label>
+      </FieldRow>
+
+      {!allFonts && (
+        <Button variant="ghost" size="sm" onClick={onLoadAll} disabled={loadingAll} className="w-full">
+          {loadingAll ? "Загружаю каталог..." : "Загрузить все ~1500 шрифтов из Google Fonts"}
+        </Button>
+      )}
+    </div>
   );
 }
 

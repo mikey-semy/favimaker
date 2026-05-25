@@ -2,23 +2,53 @@
 
 import JSZip from "jszip";
 import { encodeIco } from "./ico";
-import { buildHtmlSnippet, buildManifest } from "./manifest";
+import { buildBrowserConfig, buildHtmlSnippet, buildManifest } from "./manifest";
 import { renderToPngBlob } from "./renderer";
 import type { FaviconConfig } from "./types";
 
+/**
+ * Стандартные PNG-варианты под все веб-платформы. Покрывают браузеры
+ * (16/32/96), iOS home screen (180), Android Chrome / PWA (192/512),
+ * Windows Tiles (150), плюс maskable-варианты для Android-launcher с
+ * формой-маской.
+ */
 const PNG_SIZES = {
   "favicon-16x16.png": 16,
   "favicon-32x32.png": 32,
+  "favicon-96x96.png": 96,
   "apple-touch-icon.png": 180,
   "android-chrome-192x192.png": 192,
   "android-chrome-512x512.png": 512,
+  "mstile-150x150.png": 150,
 } as const;
 
 /** Размеры что вшиваются в один .ico-файл — Vista+ принимает PNG-payload. */
 const ICO_SIZES = [16, 32, 48];
 
+/** Maskable-варианты для Android-launcher (могут обрезать иконку под любую форму).
+ *  Контент должен помещаться в safe-zone 80% → принудительный padding ≥18%
+ *  и непрозрачный фон. */
+const MASKABLE_SIZES = {
+  "android-chrome-maskable-192x192.png": 192,
+  "android-chrome-maskable-512x512.png": 512,
+} as const;
+
 async function blobToUint8Array(blob: Blob): Promise<Uint8Array> {
   return new Uint8Array(await blob.arrayBuffer());
+}
+
+/** Подготовить конфиг под maskable-рендер: safe-zone + непрозрачный фон. */
+function toMaskableConfig(config: FaviconConfig): FaviconConfig {
+  const next = { ...config };
+  next.paddingPct = Math.max(config.paddingPct, 18);
+  next.shape = "square"; // maskable рисуется в квадрат, маску накладывает ОС
+  next.borderRadiusPct = 0;
+  // Maskable должен быть непрозрачным — Android заливает остальное чёрным иначе
+  if (config.bgMode === "transparent") {
+    next.bgMode = "solid";
+    next.bgColor = config.bgColor || "#ffffff";
+  }
+  return next;
 }
 
 /**
@@ -31,9 +61,16 @@ export async function buildFaviconZip(
 ): Promise<Blob> {
   const zip = new JSZip();
 
-  // PNG-варианты
+  // Стандартные PNG (без маскирования)
   for (const [filename, size] of Object.entries(PNG_SIZES)) {
     const blob = await renderToPngBlob(size, config);
+    zip.file(filename, blob);
+  }
+
+  // Maskable PNG — отдельный конфиг с safe-zone и непрозрачным фоном
+  const maskableConfig = toMaskableConfig(config);
+  for (const [filename, size] of Object.entries(MASKABLE_SIZES)) {
+    const blob = await renderToPngBlob(size, maskableConfig);
     zip.file(filename, blob);
   }
 
@@ -47,8 +84,9 @@ export async function buildFaviconZip(
   const icoBytes = encodeIco(icoImages);
   zip.file("favicon.ico", icoBytes);
 
-  // Manifest + HTML snippet
+  // Manifest (с maskable-вариантами) + browserconfig (Windows tiles) + HTML snippet
   zip.file("site.webmanifest", buildManifest(config, appName || "Site"));
+  zip.file("browserconfig.xml", buildBrowserConfig(config));
   zip.file("README.html-snippet.html", buildHtmlSnippet());
 
   // README в zip-е
@@ -58,19 +96,28 @@ export async function buildFaviconZip(
       "favimaker — сгенерированный пакет favicon",
       "",
       "Файлы:",
-      "  favicon.ico                       — для старых браузеров / Windows",
-      "  favicon-16x16.png                 — браузерная вкладка",
-      "  favicon-32x32.png                 — браузерная вкладка retina",
-      "  apple-touch-icon.png (180x180)    — iOS home screen",
-      "  android-chrome-192x192.png        — Android (стандарт)",
-      "  android-chrome-512x512.png        — Android (large)",
-      "  site.webmanifest                  — PWA-манифест",
+      "  favicon.ico                              — старые браузеры / Windows (16+32+48)",
+      "  favicon-16x16.png                        — браузерная вкладка",
+      "  favicon-32x32.png                        — браузерная вкладка retina",
+      "  favicon-96x96.png                        — legacy Chrome / Android",
+      "  apple-touch-icon.png (180x180)           — iOS / macOS Safari home screen",
+      "  android-chrome-192x192.png               — Android Chrome (стандарт)",
+      "  android-chrome-512x512.png               — Android Chrome (large) + PWA splash",
+      "  android-chrome-maskable-192x192.png      — Android-launcher с обрезкой (safe zone)",
+      "  android-chrome-maskable-512x512.png      — то же для large",
+      "  mstile-150x150.png                       — Windows pinned tile",
+      "  site.webmanifest                         — PWA-манифест (с maskable-вариантами)",
+      "  browserconfig.xml                        — config для Windows tiles",
+      "  README.html-snippet.html                 — готовые <link> для <head>",
       "",
       "Установка:",
       "  1. Распакуйте всё в /public корня сайта.",
       "  2. Вставьте содержимое README.html-snippet.html в <head>.",
       "",
-      "Сгенерировано favimaker (https://favimaker.app)",
+      "macOS Safari pinned tab (safari-pinned-tab.svg) пропущен —",
+      "требует одноцветной SVG-генерации. Safari работает и без него.",
+      "",
+      "Сгенерировано favimaker (https://github.com/mikey-semy/favimaker)",
     ].join("\n"),
   );
 
