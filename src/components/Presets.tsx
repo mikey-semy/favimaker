@@ -61,15 +61,13 @@ export function Presets() {
           type="button"
           onClick={() => replace(p.config)}
           className={cn(
-            "group flex items-center gap-2.5 rounded-[var(--r-md)] border border-line bg-surface-2 p-2 transition-colors",
-            "hover:border-accent/40 hover:bg-surface text-left min-w-0",
+            "group flex flex-col items-center gap-2 rounded-[var(--r-md)] border border-line bg-surface-2 p-3 transition-colors",
+            "hover:border-accent/40 hover:bg-surface text-center",
           )}
           title={p.name[locale]}
         >
-          <span className="shrink-0">
-            <PresetThumbnail preset={p} />
-          </span>
-          <span className="text-xs text-ink-2 group-hover:text-ink transition-colors leading-tight break-words min-w-0">
+          <PresetThumbnail preset={p} />
+          <span className="text-[11px] text-ink-2 group-hover:text-ink transition-colors leading-tight">
             {p.name[locale]}
           </span>
         </button>

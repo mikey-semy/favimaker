@@ -13,12 +13,6 @@ import {
   Share2,
 } from "lucide-react";
 import { useConfig } from "@/lib/store";
-import {
-  POPULAR_FONTS,
-  fetchAllFonts,
-  loadGoogleFont,
-  type GoogleFont,
-} from "@/lib/google-fonts";
 import { useT } from "@/lib/i18n";
 import { Button, ColorInput, Select, Slider, SegmentedControl, TextInput } from "./inputs";
 import { Field, FieldRow } from "./Field";
@@ -26,6 +20,7 @@ import { DropZone } from "./DropZone";
 import { Presets } from "./Presets";
 import { EmojiPicker } from "./EmojiPicker";
 import { IconPicker } from "./IconPicker";
+import { FontPicker } from "./FontPicker";
 
 export function Editor() {
   const { config, set, setGradient, reset } = useConfig();
@@ -335,103 +330,5 @@ export function Editor() {
   );
 }
 
-function FontPicker() {
-  const { config, set } = useConfig();
-  const t = useT();
-  const [allFonts, setAllFonts] = React.useState<GoogleFont[] | null>(null);
-  const [loadingAll, setLoadingAll] = React.useState(false);
-  const [search, setSearch] = React.useState("");
-  const [cyrillicOnly, setCyrillicOnly] = React.useState(false);
-
-  React.useEffect(() => {
-    const list = allFonts ?? POPULAR_FONTS;
-    const font = list.find((f) => f.family === config.fontFamily);
-    if (font) loadGoogleFont(config.fontFamily, font.weights);
-  }, [config.fontFamily, allFonts]);
-
-  const onLoadAll = async () => {
-    setLoadingAll(true);
-    try {
-      const fonts = await fetchAllFonts();
-      setAllFonts(fonts);
-    } catch {
-      // нет сети — остаёмся на курируемом
-    } finally {
-      setLoadingAll(false);
-    }
-  };
-
-  const source = allFonts ?? POPULAR_FONTS;
-  const filtered = React.useMemo(() => {
-    let list = source;
-    if (cyrillicOnly) list = list.filter((f) => f.cyrillic);
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      list = list.filter((f) => f.family.toLowerCase().includes(q));
-    }
-    return [...list].sort((a, b) => {
-      if (a.category !== b.category) return a.category.localeCompare(b.category);
-      return a.family.localeCompare(b.family);
-    });
-  }, [source, search, cyrillicOnly]);
-
-  const grouped = React.useMemo(() => {
-    const map = new Map<GoogleFont["category"], GoogleFont[]>();
-    for (const f of filtered) {
-      const arr = map.get(f.category) ?? [];
-      arr.push(f);
-      map.set(f.category, arr);
-    }
-    return map;
-  }, [filtered]);
-
-  return (
-    <div className="space-y-2">
-      <Field
-        label={`${t("fonts.fontLabel")} (${filtered.length}${allFonts ? ` / ${allFonts.length}` : "+"})`}
-      >
-        <Select value={config.fontFamily} onChange={(e) => set("fontFamily", e.target.value)}>
-          {Array.from(grouped.entries()).map(([cat, fonts]) => (
-            <optgroup key={cat} label={cat}>
-              {fonts.map((f) => (
-                <option key={f.family} value={f.family}>
-                  {f.family}
-                  {f.cyrillic ? "" : " (latin)"}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </Select>
-      </Field>
-
-      <FieldRow>
-        <TextInput
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t("fonts.search")}
-        />
-        <label className="flex items-center gap-2 px-3 text-xs text-ink-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={cyrillicOnly}
-            onChange={(e) => setCyrillicOnly(e.target.checked)}
-            className="accent-accent"
-          />
-          {t("fonts.cyrillicOnly")}
-        </label>
-      </FieldRow>
-
-      {!allFonts && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onLoadAll}
-          disabled={loadingAll}
-          className="w-full"
-        >
-          {loadingAll ? t("btn.loadingFonts") : t("btn.loadAllFonts")}
-        </Button>
-      )}
-    </div>
-  );
-}
+// FontPicker вынесен в components/FontPicker.tsx (с keyboard-nav и
+// превью каждого шрифта в его собственном font-family)

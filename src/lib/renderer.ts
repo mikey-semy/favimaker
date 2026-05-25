@@ -104,13 +104,20 @@ function drawContent(ctx: CanvasRenderingContext2D, size: number, config: Favico
 
   ctx.font = `${config.fontWeight} ${finalFontSize}px ${fontStack}`;
   ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  // letterSpacing — экспериментальный API (Chromium 99+, Firefox 117+).
-  // На старых браузерах TypeScript-каст не упадёт, а свойство просто не применится.
+  // textBaseline=middle опирается на em-box (включая ascender/descender),
+  // визуально центр глифа смещён вверх. Используем alphabetic + сдвиг
+  // на основании реального bbox глифа — оптический центр.
+  ctx.textBaseline = "alphabetic";
   if ("letterSpacing" in ctx) {
     (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing =
       `${config.letterSpacing}em`;
   }
+
+  // Замерим bbox чтобы сдвинуть Y в оптический центр
+  const finalMeasure = ctx.measureText(value);
+  const asc = finalMeasure.actualBoundingBoxAscent ?? finalFontSize * 0.7;
+  const desc = finalMeasure.actualBoundingBoxDescent ?? finalFontSize * 0.2;
+  const centerY = size / 2 + (asc - desc) / 2;
 
   if (config.shadow) {
     ctx.shadowColor = config.shadowColor;
@@ -118,14 +125,15 @@ function drawContent(ctx: CanvasRenderingContext2D, size: number, config: Favico
     ctx.shadowOffsetY = (config.shadowOffsetY / 100) * size;
   }
 
-  if (config.textStrokeColor && config.textStrokeWidth > 0) {
-    ctx.strokeStyle = config.textStrokeColor;
+  if (config.textStrokeWidth > 0) {
+    ctx.strokeStyle = config.textStrokeColor ?? "#000000";
     ctx.lineWidth = (config.textStrokeWidth / 100) * size;
-    ctx.strokeText(value, size / 2, size / 2);
+    ctx.lineJoin = "round";
+    ctx.strokeText(value, size / 2, centerY);
   }
 
   ctx.fillStyle = config.textColor;
-  ctx.fillText(value, size / 2, size / 2);
+  ctx.fillText(value, size / 2, centerY);
 
   ctx.shadowColor = "transparent";
   ctx.shadowBlur = 0;

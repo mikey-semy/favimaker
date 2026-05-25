@@ -142,7 +142,9 @@ export function SegmentedControl<T extends string>({
   return (
     <div
       className={cn(
-        "inline-flex rounded-[var(--r-md)] bg-surface-2 border border-line p-1 gap-0.5",
+        // flex (не inline-flex) + min-w-0 на детях позволяет flex-1 действительно
+        // делить ширину. Иначе на мобильном с 4 опциями элементы вылазили.
+        "flex rounded-[var(--r-md)] bg-surface-2 border border-line p-1 gap-0.5",
         className,
       )}
     >
@@ -151,15 +153,16 @@ export function SegmentedControl<T extends string>({
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
+          title={opt.label}
           className={cn(
-            "flex items-center justify-center gap-1.5 flex-1 px-3 py-1.5 rounded-[var(--r-sm)] text-xs font-medium transition-colors",
+            "flex items-center justify-center gap-1.5 flex-1 min-w-0 px-2 py-1.5 rounded-[var(--r-sm)] text-xs font-medium transition-colors",
             value === opt.value
               ? "bg-accent text-[var(--accent-ink)]"
               : "text-ink-2 hover:text-ink hover:bg-line/60",
           )}
         >
           {opt.icon}
-          {opt.label}
+          <span className="truncate">{opt.label}</span>
         </button>
       ))}
     </div>

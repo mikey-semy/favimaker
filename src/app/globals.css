@@ -90,10 +90,22 @@ body {
     8px 0;
 }
 
-/* минималистичный скроллбар */
+/* нативный <option> в <select> — браузеры допускают bg+color через CSS
+   (Chrome/Firefox/Edge), Safari использует системный стиль */
+select option {
+  background-color: var(--surface);
+  color: var(--ink);
+}
+select optgroup {
+  background-color: var(--surface);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* тонкий минималистичный скроллбар */
 *::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
 }
 *::-webkit-scrollbar-track {
   background: transparent;
@@ -104,4 +116,9 @@ body {
 }
 *::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
+}
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
 }
