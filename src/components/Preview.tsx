@@ -72,7 +72,12 @@ function PreviewCanvasLarge() {
     };
   }, [config]);
 
-  return <canvas ref={ref} className="size-64 rounded-[var(--r-md)]" />;
+  return (
+    <canvas
+      ref={ref}
+      className="w-full max-w-64 aspect-square rounded-[var(--r-md)]"
+    />
+  );
 }
 
 export function Preview() {
@@ -81,8 +86,8 @@ export function Preview() {
     <div className="space-y-6">
       <div>
         <p className="text-[11px] uppercase tracking-wider text-muted mb-3">{t("preview.title")}</p>
-        <div className="checker rounded-[var(--r-lg)] p-8 flex items-center justify-center">
-          <div className="bg-surface rounded-[var(--r-lg)] p-6">
+        <div className="checker rounded-[var(--r-lg)] p-4 sm:p-8 flex items-center justify-center">
+          <div className="bg-surface rounded-[var(--r-lg)] p-4 sm:p-6 max-w-full">
             <PreviewCanvasLarge />
           </div>
         </div>
@@ -92,7 +97,7 @@ export function Preview() {
         <p className="text-[11px] uppercase tracking-wider text-muted mb-3">
           {t("preview.realSizes")}
         </p>
-        <div className="flex items-end justify-around gap-4 bg-surface rounded-[var(--r-lg)] p-6">
+        <div className="flex flex-wrap items-end justify-around gap-4 bg-surface rounded-[var(--r-lg)] p-4 sm:p-6">
           {PREVIEW_SIZES.map((s) => (
             <div key={s} className="flex flex-col items-center gap-2">
               <PreviewCanvas size={s} />

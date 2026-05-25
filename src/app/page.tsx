@@ -60,9 +60,11 @@ export default function HomePage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1600px] px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr_320px] gap-6">
-          <aside className="bg-surface rounded-[var(--r-lg)] border border-line p-5 h-fit lg:sticky lg:top-6 max-h-[calc(100vh-3rem)] overflow-y-auto">
+      <div className="mx-auto max-w-[1600px] px-4 py-6 lg:px-6 lg:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr_320px] gap-4 lg:gap-6">
+          {/* max-h+overflow только на десктопе — на мобильном это создавало
+              nested-scroll и юзер не мог нормально прокручивать страницу */}
+          <aside className="bg-surface rounded-[var(--r-lg)] border border-line p-4 lg:p-5 h-fit lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
             <Editor />
           </aside>
 
@@ -70,7 +72,7 @@ export default function HomePage() {
             <Preview />
           </section>
 
-          <aside className="bg-surface rounded-[var(--r-lg)] border border-line p-5 h-fit lg:sticky lg:top-6">
+          <aside className="bg-surface rounded-[var(--r-lg)] border border-line p-4 lg:p-5 h-fit lg:sticky lg:top-6">
             <h2 className="text-sm font-semibold mb-4" suppressHydrationWarning>
               {t("section.export")}
             </h2>

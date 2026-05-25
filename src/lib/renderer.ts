@@ -78,10 +78,8 @@ function drawContent(ctx: CanvasRenderingContext2D, size: number, config: Favico
   const padding = (config.paddingPct / 100) * size;
   const innerSize = size - padding * 2;
 
-  if (config.source === "image" && config.imageDataUrl) {
-    const img = (drawContent as unknown as { __cache?: Map<string, HTMLImageElement> }).__cache;
+  if (config.source === "image") {
     // Картинки рисуются асинхронно через renderToCanvas, не здесь.
-    void img;
     return;
   }
 
@@ -91,18 +89,28 @@ function drawContent(ctx: CanvasRenderingContext2D, size: number, config: Favico
   // Авто-подгонка кегля под inner-зону: считаем от пользовательского fontSizePct,
   // но если контент шире — уменьшаем чтобы влез с лёгким запасом.
   const baseFontSize = (config.fontSizePct / 100) * size;
-  const fontFamily = config.source === "emoji" ? '"Segoe UI Emoji", "Apple Color Emoji", sans-serif' : config.fontFamily;
+  // Эмодзи рисуем системным emoji-stack БЕЗ доп. кавычек, текст —
+  // через одиночный quoted family + sans-serif fallback.
+  const fontStack =
+    config.source === "emoji"
+      ? `"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`
+      : `"${config.fontFamily}", sans-serif`;
 
-  ctx.font = `${config.fontWeight} ${baseFontSize}px "${fontFamily}", sans-serif`;
+  ctx.font = `${config.fontWeight} ${baseFontSize}px ${fontStack}`;
   const measured = ctx.measureText(value);
   const textWidth = measured.width;
   const scale = textWidth > innerSize ? innerSize / textWidth : 1;
   const finalFontSize = baseFontSize * scale;
 
-  ctx.font = `${config.fontWeight} ${finalFontSize}px "${fontFamily}", sans-serif`;
+  ctx.font = `${config.fontWeight} ${finalFontSize}px ${fontStack}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.letterSpacing = `${config.letterSpacing}em` as unknown as string;
+  // letterSpacing — экспериментальный API (Chromium 99+, Firefox 117+).
+  // На старых браузерах TypeScript-каст не упадёт, а свойство просто не применится.
+  if ("letterSpacing" in ctx) {
+    (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing =
+      `${config.letterSpacing}em`;
+  }
 
   if (config.shadow) {
     ctx.shadowColor = config.shadowColor;
@@ -143,19 +151,25 @@ function drawBorder(ctx: CanvasRenderingContext2D, size: number, config: Favicon
   ctx.restore();
 }
 
-/** Загрузить изображение из dataURL (кэшируется). */
-const imageCache = new Map<string, Promise<HTMLImageElement>>();
+/**
+ * Загрузить изображение из dataURL. Простой single-slot cache:
+ * храним только последнюю картинку — повторные рендеры одной и той же
+ * картинки не пересоздают Image, но смена картинки очищает старую
+ * (data-URL длинный, держать стопку = memory leak).
+ */
+let lastImageSrc: string | null = null;
+let lastImagePromise: Promise<HTMLImageElement> | null = null;
 function loadImage(src: string): Promise<HTMLImageElement> {
-  if (imageCache.has(src)) return imageCache.get(src)!;
-  const p = new Promise<HTMLImageElement>((resolve, reject) => {
+  if (lastImageSrc === src && lastImagePromise) return lastImagePromise;
+  lastImageSrc = src;
+  lastImagePromise = new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
     img.onerror = reject;
     img.src = src;
   });
-  imageCache.set(src, p);
-  return p;
+  return lastImagePromise;
 }
 
 /**

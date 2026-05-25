@@ -1,16 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  Type,
-  Smile,
-  ImageIcon,
-  Square,
-  Circle,
-  Squircle,
-  RotateCcw,
-  Share2,
-} from "lucide-react";
+import { Type, Smile, ImageIcon, Square, Circle, Squircle, RotateCcw, Share2 } from "lucide-react";
 import { useConfig } from "@/lib/store";
 import {
   POPULAR_FONTS,

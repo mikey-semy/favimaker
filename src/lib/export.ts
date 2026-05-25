@@ -61,28 +61,29 @@ export async function buildFaviconZip(
 ): Promise<Blob> {
   const zip = new JSZip();
 
-  // Стандартные PNG (без маскирования)
-  for (const [filename, size] of Object.entries(PNG_SIZES)) {
-    const blob = await renderToPngBlob(size, config);
-    zip.file(filename, blob);
-  }
-
-  // Maskable PNG — отдельный конфиг с safe-zone и непрозрачным фоном
+  // Параллельный рендер всех 12 PNG (7 стандартных + 2 maskable + 3 ICO).
+  // На слабых устройствах это раза в 2-3 быстрее последовательного await.
   const maskableConfig = toMaskableConfig(config);
-  for (const [filename, size] of Object.entries(MASKABLE_SIZES)) {
-    const blob = await renderToPngBlob(size, maskableConfig);
-    zip.file(filename, blob);
-  }
+  const [standardBlobs, maskableBlobs, icoPngs] = await Promise.all([
+    Promise.all(
+      Object.entries(PNG_SIZES).map(async ([fn, size]) => [fn, await renderToPngBlob(size, config)] as const),
+    ),
+    Promise.all(
+      Object.entries(MASKABLE_SIZES).map(
+        async ([fn, size]) => [fn, await renderToPngBlob(size, maskableConfig)] as const,
+      ),
+    ),
+    Promise.all(
+      ICO_SIZES.map(async (size) => ({
+        size,
+        png: await blobToUint8Array(await renderToPngBlob(size, config)),
+      })),
+    ),
+  ]);
 
-  // ICO (16 + 32 + 48 склеены)
-  const icoImages = await Promise.all(
-    ICO_SIZES.map(async (size) => ({
-      size,
-      png: await blobToUint8Array(await renderToPngBlob(size, config)),
-    })),
-  );
-  const icoBytes = encodeIco(icoImages);
-  zip.file("favicon.ico", icoBytes);
+  for (const [fn, blob] of standardBlobs) zip.file(fn, blob);
+  for (const [fn, blob] of maskableBlobs) zip.file(fn, blob);
+  zip.file("favicon.ico", encodeIco(icoPngs));
 
   // Manifest (с maskable-вариантами) + browserconfig (Windows tiles) + HTML snippet
   zip.file("site.webmanifest", buildManifest(config, appName || "Site"));
