@@ -94,12 +94,28 @@ export function FontPicker() {
     }
   };
 
-  // Скролл к активной опции при ↑↓
+  // Скролл к выбранной/активной опции при ↑↓
   React.useEffect(() => {
     if (!open || !listRef.current) return;
-    const item = listRef.current.querySelector<HTMLElement>(`[data-idx="${activeIndex}"]`);
+    const targetIdx =
+      visibleFonts.findIndex((f) => f.family === config.fontFamily) >= 0
+        ? visibleFonts.findIndex((f) => f.family === config.fontFamily)
+        : activeIndex;
+    const item = listRef.current.querySelector<HTMLElement>(`[data-idx="${targetIdx}"]`);
     item?.scrollIntoView({ block: "nearest" });
-  }, [activeIndex, open]);
+  }, [config.fontFamily, activeIndex, open, visibleFonts]);
+
+  // Найти текущий индекс шрифта в видимом списке для арифметики ↑↓
+  const currentIdx = visibleFonts.findIndex((f) => f.family === config.fontFamily);
+
+  const applyIdx = (idx: number) => {
+    const clamped = Math.max(0, Math.min(visibleFonts.length - 1, idx));
+    const f = visibleFonts[clamped];
+    if (f) {
+      set("fontFamily", f.family);
+      setActiveIndex(clamped);
+    }
+  };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (!open) {
@@ -109,30 +125,23 @@ export function FontPicker() {
       }
       return;
     }
-    if (e.key === "Escape") {
+    if (e.key === "Escape" || e.key === "Enter") {
       e.preventDefault();
       setOpen(false);
       return;
     }
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActiveIndex((i) => Math.min(visibleFonts.length - 1, i + 1));
+      applyIdx((currentIdx >= 0 ? currentIdx : activeIndex) + 1);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setActiveIndex((i) => Math.max(0, i - 1));
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      const f = visibleFonts[activeIndex];
-      if (f) {
-        set("fontFamily", f.family);
-        setOpen(false);
-      }
+      applyIdx((currentIdx >= 0 ? currentIdx : activeIndex) - 1);
     } else if (e.key === "Home") {
       e.preventDefault();
-      setActiveIndex(0);
+      applyIdx(0);
     } else if (e.key === "End") {
       e.preventDefault();
-      setActiveIndex(visibleFonts.length - 1);
+      applyIdx(visibleFonts.length - 1);
     }
   };
 
@@ -192,8 +201,11 @@ export function FontPicker() {
                         onMouseEnter={() => setActiveIndex(idx)}
                         className={cn(
                           "flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors",
-                          active && "bg-surface-2",
-                          selected && !active && "bg-accent/10",
+                          selected
+                            ? "bg-accent/15 text-ink"
+                            : active
+                              ? "bg-surface-2"
+                              : "",
                         )}
                       >
                         <span
