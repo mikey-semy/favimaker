@@ -5,7 +5,7 @@
 
 export type Shape = "square" | "circle" | "rounded";
 
-export type SourceMode = "text" | "emoji" | "image";
+export type SourceMode = "text" | "emoji" | "icon" | "image";
 
 export type BgMode = "solid" | "gradient" | "transparent";
 
@@ -27,6 +27,10 @@ export type FaviconConfig = {
   text: string;
   /** Эмодзи (если source=emoji). */
   emoji: string;
+  /** Имя иконки из lucide-react (если source=icon), например "Heart" / "Code". */
+  iconName: string;
+  /** Толщина обводки lucide-иконки (1-4). */
+  iconStrokeWidth: number;
   /** dataURL загруженной картинки (если source=image). */
   imageDataUrl: string | null;
 
@@ -73,6 +77,8 @@ export const DEFAULT_CONFIG: FaviconConfig = {
   source: "text",
   text: "F",
   emoji: "🦝",
+  iconName: "Heart",
+  iconStrokeWidth: 2,
   imageDataUrl: null,
 
   fontFamily: "Inter",

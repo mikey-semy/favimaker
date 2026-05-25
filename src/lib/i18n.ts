@@ -24,6 +24,7 @@ const dict = {
   // source modes
   "source.text": { ru: "Текст", en: "Text" },
   "source.emoji": { ru: "Эмодзи", en: "Emoji" },
+  "source.icon": { ru: "Иконка", en: "Icon" },
   "source.image": { ru: "Картинка", en: "Image" },
 
   // fields

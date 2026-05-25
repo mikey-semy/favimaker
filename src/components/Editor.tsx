@@ -1,7 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { Type, Smile, ImageIcon, Square, Circle, Squircle, RotateCcw, Share2 } from "lucide-react";
+import {
+  Type,
+  Smile,
+  ImageIcon,
+  Sparkles,
+  Square,
+  Circle,
+  Squircle,
+  RotateCcw,
+  Share2,
+} from "lucide-react";
 import { useConfig } from "@/lib/store";
 import {
   POPULAR_FONTS,
@@ -14,6 +24,8 @@ import { Button, ColorInput, Select, Slider, SegmentedControl, TextInput } from 
 import { Field, FieldRow } from "./Field";
 import { DropZone } from "./DropZone";
 import { Presets } from "./Presets";
+import { EmojiPicker } from "./EmojiPicker";
+import { IconPicker } from "./IconPicker";
 
 export function Editor() {
   const { config, set, setGradient, reset } = useConfig();
@@ -52,6 +64,7 @@ export function Editor() {
           options={[
             { value: "text", label: t("source.text"), icon: <Type className="size-3.5" /> },
             { value: "emoji", label: t("source.emoji"), icon: <Smile className="size-3.5" /> },
+            { value: "icon", label: t("source.icon"), icon: <Sparkles className="size-3.5" /> },
             {
               value: "image",
               label: t("source.image"),
@@ -112,15 +125,9 @@ export function Editor() {
             </>
           )}
 
-          {config.source === "emoji" && (
-            <TextInput
-              value={config.emoji}
-              onChange={(e) => set("emoji", e.target.value)}
-              placeholder="🦝"
-              maxLength={2}
-              className="text-2xl text-center"
-            />
-          )}
+          {config.source === "emoji" && <EmojiPicker />}
+
+          {config.source === "icon" && <IconPicker />}
 
           {config.source === "image" && <DropZone />}
         </div>

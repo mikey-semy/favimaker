@@ -173,6 +173,63 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 /**
+ * Отрендерить lucide-иконку в SVG-строку, затем загрузить как Image.
+ * Используется dynamic import чтобы не тащить lucide-react и react-dom/server
+ * в начальный bundle если иконки не выбраны.
+ */
+const iconImageCache = new Map<string, Promise<HTMLImageElement>>();
+async function loadIconImage(
+  name: string,
+  color: string,
+  strokeWidth: number,
+): Promise<HTMLImageElement | null> {
+  const cacheKey = `${name}|${color}|${strokeWidth}`;
+  const cached = iconImageCache.get(cacheKey);
+  if (cached) return cached;
+
+  // Cap cache размер до 16 (повторяющиеся иконки)
+  if (iconImageCache.size > 16) {
+    const firstKey = iconImageCache.keys().next().value;
+    if (firstKey) iconImageCache.delete(firstKey);
+  }
+
+  const p = (async () => {
+    const [lucide, { renderToStaticMarkup }] = await Promise.all([
+      import("lucide-react"),
+      import("react-dom/server"),
+    ]);
+    const Icon = (lucide as unknown as Record<string, React.ComponentType<{ size: number; color: string; strokeWidth: number }>>)[name];
+    if (!Icon) throw new Error(`Icon ${name} not found`);
+
+    const React = await import("react");
+    const element = React.createElement(Icon, { size: 100, color, strokeWidth });
+    const svgString = renderToStaticMarkup(element);
+    const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = reject;
+        i.src = url;
+      });
+      return img;
+    } finally {
+      // Не revoke сразу — Image может еще использоваться. Через таймаут.
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+  })();
+
+  iconImageCache.set(cacheKey, p);
+  try {
+    return await p;
+  } catch {
+    iconImageCache.delete(cacheKey);
+    return null;
+  }
+}
+
+/**
  * Главная функция рендера. Принимает уже созданный canvas нужного размера.
  * Возвращает Promise<void> — нужно await чтобы дождаться картинок.
  */
@@ -200,6 +257,21 @@ export async function renderToCanvas(
       ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
     } catch {
       // картинка не загрузилась — рендерим без неё
+    }
+  } else if (config.source === "icon") {
+    try {
+      const icon = await loadIconImage(
+        config.iconName,
+        config.textColor,
+        config.iconStrokeWidth,
+      );
+      if (icon) {
+        const padding = (config.paddingPct / 100) * size;
+        const inner = size - padding * 2;
+        ctx.drawImage(icon, (size - inner) / 2, (size - inner) / 2, inner, inner);
+      }
+    } catch {
+      // иконка не загрузилась — пропускаем
     }
   } else {
     drawContent(ctx, size, config);
