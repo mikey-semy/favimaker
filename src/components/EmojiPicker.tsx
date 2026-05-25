@@ -1,65 +1,33 @@
 "use client";
 
-import * as React from "react";
-import emojiData from "unicode-emoji-json";
+import dynamic from "next/dynamic";
+import { EmojiStyle, Theme, type EmojiClickData } from "emoji-picker-react";
 import { useConfig } from "@/lib/store";
-import { useT } from "@/lib/i18n";
+import { useTheme } from "@/lib/theme";
 import { TextInput } from "./inputs";
-import { cn } from "@/lib/cn";
 
-type EmojiEntry = {
-  emoji: string;
-  name: string;
-  group: string;
-};
-
-// Группируем эмодзи по категориям один раз при загрузке модуля
-const ALL_EMOJIS: EmojiEntry[] = Object.entries(emojiData as Record<string, { name: string; group: string }>).map(
-  ([emoji, meta]) => ({
-    emoji,
-    name: meta.name,
-    group: meta.group,
-  }),
-);
-
-const GROUPED: Map<string, EmojiEntry[]> = (() => {
-  const map = new Map<string, EmojiEntry[]>();
-  for (const e of ALL_EMOJIS) {
-    const arr = map.get(e.group) ?? [];
-    arr.push(e);
-    map.set(e.group, arr);
-  }
-  return map;
-})();
-
-const GROUP_LABELS_RU: Record<string, string> = {
-  "Smileys & Emotion": "Смайлы и эмоции",
-  "People & Body": "Люди и тело",
-  "Animals & Nature": "Животные и природа",
-  "Food & Drink": "Еда и напитки",
-  "Travel & Places": "Путешествия и места",
-  Activities: "Активности",
-  Objects: "Объекты",
-  Symbols: "Символы",
-  Flags: "Флаги",
-  Component: "Компоненты",
-};
+/**
+ * Готовая библиотека emoji-picker-react с Twemoji-рендером.
+ * Все эмодзи рендерятся через PNG-картинки Twitter — выглядят
+ * одинаково в любой ОС, не зависят от системных шрифтов
+ * (без □/тофу и без склеек ZWJ-последовательностей).
+ *
+ * Сам компонент подгружается dynamic (SSR=false) — он клиент-only.
+ */
+const Picker = dynamic(() => import("emoji-picker-react"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-72 flex items-center justify-center text-xs text-muted">Загружаю…</div>
+  ),
+});
 
 export function EmojiPicker() {
   const { config, set } = useConfig();
-  const t = useT();
-  const [search, setSearch] = React.useState("");
-  const [activeGroup, setActiveGroup] = React.useState<string>("Smileys & Emotion");
+  const theme = useTheme((s) => s.theme);
 
-  const filtered = React.useMemo(() => {
-    if (!search.trim()) return null;
-    const q = search.trim().toLowerCase();
-    return ALL_EMOJIS.filter(
-      (e) => e.name.toLowerCase().includes(q) || e.emoji.includes(q),
-    ).slice(0, 200);
-  }, [search]);
-
-  const visibleGroup = GROUPED.get(activeGroup) ?? [];
+  const handleClick = (data: EmojiClickData) => {
+    set("emoji", data.emoji);
+  };
 
   return (
     <div className="space-y-3">
@@ -71,53 +39,17 @@ export function EmojiPicker() {
         className="text-2xl text-center"
       />
 
-      <TextInput
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder={`${t("fonts.search")} (${ALL_EMOJIS.length}+)`}
-      />
-
-      {/* Категории-таблы (показываются если нет активного поиска) */}
-      {!filtered && (
-        <div className="flex gap-1 overflow-x-auto -mx-1 px-1 pb-1">
-          {Array.from(GROUPED.keys())
-            .filter((g) => g !== "Component")
-            .map((g) => (
-              <button
-                key={g}
-                type="button"
-                onClick={() => setActiveGroup(g)}
-                className={cn(
-                  "text-[10px] uppercase tracking-wider whitespace-nowrap px-2 py-1 rounded-full transition-colors",
-                  activeGroup === g
-                    ? "bg-accent text-[var(--accent-ink)]"
-                    : "text-muted hover:text-ink-2",
-                )}
-              >
-                {GROUP_LABELS_RU[g] ?? g}
-              </button>
-            ))}
-        </div>
-      )}
-
-      <div className="max-h-72 overflow-y-auto">
-        <div className="grid grid-cols-8 gap-0.5">
-          {(filtered ?? visibleGroup).map((e) => (
-            <button
-              key={e.emoji}
-              type="button"
-              onClick={() => set("emoji", e.emoji)}
-              title={e.name}
-              className={cn(
-                "flex items-center justify-center aspect-square rounded-[var(--r-sm)] text-xl transition-colors",
-                "hover:bg-surface-2",
-                config.emoji === e.emoji && "ring-2 ring-accent bg-surface-2",
-              )}
-            >
-              {e.emoji}
-            </button>
-          ))}
-        </div>
+      <div className="rounded-[var(--r-md)] overflow-hidden border border-line">
+        <Picker
+          onEmojiClick={handleClick}
+          theme={theme === "dark" ? Theme.DARK : Theme.LIGHT}
+          emojiStyle={EmojiStyle.TWITTER}
+          width="100%"
+          height={360}
+          lazyLoadEmojis
+          searchPlaceHolder="Поиск..."
+          previewConfig={{ showPreview: false }}
+        />
       </div>
     </div>
   );

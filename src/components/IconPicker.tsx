@@ -29,10 +29,21 @@ async function loadAllIcons(): Promise<{
   }
   const mod = await import("lucide-react");
   const record = mod as unknown as LucideIconRecord;
-  // Фильтруем только PascalCase-имена компонентов (исключаем utility-экспорты)
-  const names = Object.keys(record).filter(
-    (k) => /^[A-Z]/.test(k) && typeof record[k] === "function",
-  );
+  // Иконки в lucide-react — это forwardRef-объекты (не plain functions),
+  // поэтому фильтруем только по имени PascalCase. Не-иконочные хелперы
+  // вроде LucideIcon / createLucideIcon тоже пройдут, но они не рендерятся
+  // как кнопки в гриде — IconButton просто покажет fallback.
+  const NON_ICON = new Set([
+    "createLucideIcon",
+    "Icon",
+    "LucideIcon",
+    "icons",
+    "default",
+    "LucideProps",
+  ]);
+  const names = Object.keys(record)
+    .filter((k) => /^[A-Z][a-zA-Z0-9]*$/.test(k) && !NON_ICON.has(k))
+    .sort();
   cachedIcons = record;
   cachedAllNames = names;
   return { icons: record, names };

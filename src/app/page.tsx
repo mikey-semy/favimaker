@@ -64,7 +64,10 @@ export default function HomePage() {
         <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr_300px] gap-3 lg:gap-4">
           {/* max-h+overflow только на десктопе — на мобильном это создавало
               nested-scroll и юзер не мог нормально прокручивать страницу */}
-          <aside className="bg-surface rounded-[var(--r-lg)] border border-line p-4 h-fit lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+          {/* Editor использует табы (Стили / Источник / Форма / Фон / Эффекты)
+              — внутри каждой вкладки контент короткий, скролл не нужен.
+              overflow-hidden убирает горизонтальный паразитный скролл. */}
+          <aside className="bg-surface rounded-[var(--r-lg)] border border-line p-4 h-fit lg:sticky lg:top-4 overflow-hidden">
             <Editor />
           </aside>
 

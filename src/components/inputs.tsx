@@ -69,24 +69,45 @@ export function ColorInput({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-[var(--r-md)] bg-surface-2 border border-line p-1.5",
+        "flex items-stretch gap-2 rounded-[var(--r-md)] bg-surface-2 border border-line p-1.5 transition-colors focus-within:border-accent",
         className,
       )}
     >
-      <input
-        type="color"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-7 w-9 cursor-pointer rounded-[var(--r-sm)] bg-transparent border-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-[var(--r-sm)] [&::-webkit-color-swatch]:border-0"
-      />
+      {/* Большой кликабельный свотч — всё цветное поле открывает нативную
+          палитру через скрытый <input type=color>. */}
+      <label
+        className="relative block h-8 w-10 shrink-0 cursor-pointer rounded-[var(--r-sm)] overflow-hidden ring-1 ring-line hover:ring-2 hover:ring-accent transition-all"
+        style={{ background: value }}
+        title="Открыть палитру"
+      >
+        <input
+          type="color"
+          value={normalizeHex(value)}
+          onChange={(e) => onChange(e.target.value)}
+          className="absolute inset-0 opacity-0 cursor-pointer"
+        />
+      </label>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="flex-1 bg-transparent text-sm font-mono tabular-nums text-ink outline-none uppercase"
+        spellCheck={false}
+        className="flex-1 min-w-0 bg-transparent text-sm font-mono tabular-nums text-ink outline-none uppercase"
       />
     </div>
   );
+}
+
+/** Нативный <input type=color> принимает только 7-символьный #RRGGBB (без alpha,
+ *  без коротких форматов). Нормализуем — иначе пикер не открывается. */
+function normalizeHex(v: string): string {
+  if (/^#[0-9a-f]{6}$/i.test(v)) return v;
+  // короткий формат #abc → #aabbcc
+  const short = v.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i);
+  if (short) return `#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}`;
+  // 8-символьный с alpha → отрезаем alpha
+  if (/^#[0-9a-f]{8}$/i.test(v)) return v.slice(0, 7);
+  return "#000000";
 }
 
 export function Slider({
