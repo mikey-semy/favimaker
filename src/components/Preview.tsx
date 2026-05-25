@@ -1,0 +1,145 @@
+"use client";
+
+import * as React from "react";
+import { useConfig } from "@/lib/store";
+import { renderToCanvas } from "@/lib/renderer";
+import { loadGoogleFont, waitForFont, POPULAR_FONTS } from "@/lib/google-fonts";
+
+const PREVIEW_SIZES = [16, 32, 64, 180] as const;
+
+/** Один canvas на конкретном размере. */
+function PreviewCanvas({ size }: { size: number }) {
+  const config = useConfig((s) => s.config);
+  const ref = React.useRef<HTMLCanvasElement>(null);
+
+  React.useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    canvas.width = size;
+    canvas.height = size;
+    let cancelled = false;
+
+    (async () => {
+      // Подгружаем шрифт перед рендером (если ещё не загружен)
+      if (config.source === "text") {
+        const font = POPULAR_FONTS.find((f) => f.family === config.fontFamily);
+        if (font) {
+          await loadGoogleFont(config.fontFamily, font.weights);
+          await waitForFont(config.fontFamily, config.fontWeight, config.text);
+        }
+      }
+      if (cancelled) return;
+      await renderToCanvas(canvas, config);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [config, size]);
+
+  return (
+    <canvas
+      ref={ref}
+      width={size}
+      height={size}
+      style={{ width: size, height: size }}
+      className="rounded-[var(--r-sm)]"
+    />
+  );
+}
+
+/** Большое превью + сетка маленьких в реальных размерах. */
+export function Preview() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="text-[11px] uppercase tracking-wider text-muted mb-3">
+          Предпросмотр × 4
+        </p>
+        <div className="checker rounded-[var(--r-lg)] p-8 flex items-center justify-center">
+          <div className="bg-surface rounded-[var(--r-lg)] p-6">
+            <canvas
+              ref={(c) => {
+                if (!c) return;
+                c.width = 256;
+                c.height = 256;
+                // отрисовка через PreviewCanvas... используем большой
+              }}
+              className="hidden"
+            />
+            <div className="size-64">
+              <PreviewCanvasLarge />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-[11px] uppercase tracking-wider text-muted mb-3">
+          Реальные размеры
+        </p>
+        <div className="flex items-end justify-around gap-4 bg-surface rounded-[var(--r-lg)] p-6">
+          {PREVIEW_SIZES.map((s) => (
+            <div key={s} className="flex flex-col items-center gap-2">
+              <PreviewCanvas size={s} />
+              <span className="text-[10px] font-mono text-muted">{s}×{s}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <BrowserTabPreview />
+    </div>
+  );
+}
+
+/** Большое превью 256×256. */
+function PreviewCanvasLarge() {
+  const config = useConfig((s) => s.config);
+  const ref = React.useRef<HTMLCanvasElement>(null);
+
+  React.useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    canvas.width = 256;
+    canvas.height = 256;
+    let cancelled = false;
+    (async () => {
+      if (config.source === "text") {
+        const font = POPULAR_FONTS.find((f) => f.family === config.fontFamily);
+        if (font) {
+          await loadGoogleFont(config.fontFamily, font.weights);
+          await waitForFont(config.fontFamily, config.fontWeight, config.text);
+        }
+      }
+      if (cancelled) return;
+      await renderToCanvas(canvas, config);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [config]);
+
+  return <canvas ref={ref} className="size-64 rounded-[var(--r-md)]" />;
+}
+
+/** Эмуляция таба браузера — как иконка будет выглядеть в реальной вкладке. */
+function BrowserTabPreview() {
+  return (
+    <div>
+      <p className="text-[11px] uppercase tracking-wider text-muted mb-3">
+        В браузере
+      </p>
+      <div className="bg-surface rounded-t-[var(--r-lg)] border border-line border-b-0 p-3 flex items-center gap-1.5">
+        <span className="size-3 rounded-full bg-[#ff5f57]" />
+        <span className="size-3 rounded-full bg-[#febc2e]" />
+        <span className="size-3 rounded-full bg-[#28c840]" />
+        <div className="ml-3 flex items-center gap-2 bg-bg rounded-[var(--r-md)] px-3 py-1.5 text-xs text-ink-2 max-w-[300px]">
+          <PreviewCanvas size={16} />
+          <span className="truncate">favimaker — Favicon generator</span>
+        </div>
+      </div>
+      <div className="bg-bg rounded-b-[var(--r-lg)] border border-line h-16" />
+    </div>
+  );
+}

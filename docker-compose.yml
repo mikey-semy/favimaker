@@ -1,0 +1,19 @@
+# Dokploy подхватит этот файл. Главное правило — сервис в external
+# сети dokploy-network, чтобы Traefik от Dokploy смог автоматически
+# выписать роуты по File Provider. Порт 3000 внутри контейнера —
+# стандарт Dokploy/Traefik для роутинга.
+
+services:
+  favimaker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    expose:
+      - "3000"
+
+networks:
+  dokploy-network:
+    external: true
