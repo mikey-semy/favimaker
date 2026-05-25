@@ -26,6 +26,7 @@ import { EmojiPicker } from "./EmojiPicker";
 import { IconPicker } from "./IconPicker";
 import { FontPicker } from "./FontPicker";
 import { cn } from "@/lib/cn";
+import { toast } from "@/lib/toast";
 
 type Tab = "presets" | "source" | "shape" | "bg" | "fx";
 
@@ -48,40 +49,56 @@ export function Editor() {
     const url = `${window.location.origin}${window.location.pathname}#config=${compressed}`;
     try {
       await navigator.clipboard.writeText(url);
-      alert(t("msg.shareCopied"));
+      toast.success(t("msg.shareCopied"));
     } catch {
-      prompt(t("msg.shareFallback"), url);
+      // Старые браузеры без navigator.clipboard
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+        toast.success(t("msg.shareCopied"));
+      } catch {
+        toast.error(t("msg.shareFallback"));
+      }
+      document.body.removeChild(ta);
     }
   };
 
   return (
     <div className="flex flex-col h-full">
-      {/* Tab bar */}
+      {/* Tab bar — icon + label stacked vertically, помещается 5 табов */}
       <div className="flex gap-0.5 mb-3 bg-surface-2 rounded-[var(--r-md)] p-1 border border-line">
         {TABS.map((tDef) => {
           const Icon = tDef.icon;
           const active = tab === tDef.id;
+          const label = t(tDef.labelKey as Parameters<typeof t>[0]);
           return (
             <button
               key={tDef.id}
               type="button"
               onClick={() => setTab(tDef.id)}
-              title={t(tDef.labelKey as Parameters<typeof t>[0])}
+              title={label}
               className={cn(
-                "flex flex-1 items-center justify-center min-w-0 py-1.5 rounded-[var(--r-sm)] transition-colors cursor-pointer",
+                "flex flex-col flex-1 items-center justify-center gap-0.5 min-w-0 py-1.5 rounded-[var(--r-sm)] transition-colors cursor-pointer",
                 active
                   ? "bg-accent text-[var(--accent-ink)]"
                   : "text-ink-2 hover:text-ink hover:bg-line/60",
               )}
             >
-              <Icon className="size-4" />
+              <Icon className="size-4 shrink-0" />
+              <span className="text-[9px] font-medium truncate max-w-full leading-none">
+                {label}
+              </span>
             </button>
           );
         })}
       </div>
 
-      {/* Tab content */}
-      <div className="flex-1 min-h-0">
+      {/* Tab content. key={tab} перезапускает CSS-анимацию tab-content
+          при смене таба — мягкий fade-in вместо резкого «прыжка». */}
+      <div key={tab} className="flex-1 min-h-0 tab-content">
         {tab === "presets" && <Presets />}
         {tab === "source" && <SourceTab />}
         {tab === "shape" && <ShapeTab />}

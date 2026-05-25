@@ -176,14 +176,21 @@ export function SegmentedControl<T extends string>({
           onClick={() => onChange(opt.value)}
           title={opt.label}
           className={cn(
-            "flex items-center justify-center gap-1.5 flex-1 min-w-0 px-2 py-1.5 rounded-[var(--r-sm)] text-xs font-medium transition-colors",
+            "flex flex-1 min-w-0 items-center justify-center rounded-[var(--r-sm)] font-medium transition-colors",
+            // Если есть иконка — стэк icon над label вертикально, помещается полный текст.
+            // Без иконки — однострочный горизонтальный (для bg-mode например).
+            opt.icon
+              ? "flex-col gap-0.5 py-1.5 px-1 text-[10px]"
+              : "gap-1.5 px-2 py-1.5 text-xs",
             value === opt.value
               ? "bg-accent text-[var(--accent-ink)]"
               : "text-ink-2 hover:text-ink hover:bg-line/60",
           )}
         >
           {opt.icon}
-          <span className="truncate">{opt.label}</span>
+          <span className={cn("max-w-full", opt.icon ? "leading-none" : "truncate")}>
+            {opt.label}
+          </span>
         </button>
       ))}
     </div>

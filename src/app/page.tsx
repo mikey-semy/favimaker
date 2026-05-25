@@ -61,7 +61,7 @@ export default function HomePage() {
       </header>
 
       <div className="mx-auto max-w-[1600px] px-4 py-4 lg:px-6 lg:py-6 flex-1">
-        <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr_300px] gap-3 lg:gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr_300px] gap-3 lg:gap-4">
           {/* max-h+overflow только на десктопе — на мобильном это создавало
               nested-scroll и юзер не мог нормально прокручивать страницу */}
           {/* Editor использует табы (Стили / Источник / Форма / Фон / Эффекты)
@@ -86,8 +86,8 @@ export default function HomePage() {
 
       <footer className="border-t border-line mt-6">
         <div className="mx-auto max-w-[1600px] px-6 py-3 text-[11px] text-muted flex items-center justify-between">
-          <span>
-            Open source · MIT · собрано с{" "}
+          <span suppressHydrationWarning>
+            {t("footer.builtWith")}{" "}
             <a
               href="https://claude.com/claude-code"
               className="text-ink-2 hover:text-ink"
@@ -97,8 +97,8 @@ export default function HomePage() {
               Claude Code
             </a>
           </span>
-          <span>
-            Шрифты:{" "}
+          <span suppressHydrationWarning>
+            {t("footer.fontsBy")}{" "}
             <a
               href="https://fonts.google.com"
               className="text-ink-2 hover:text-ink"

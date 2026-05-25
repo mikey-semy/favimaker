@@ -37,6 +37,65 @@ async function blobToUint8Array(blob: Blob): Promise<Uint8Array> {
   return new Uint8Array(await blob.arrayBuffer());
 }
 
+function buildReadmeText(locale: "ru" | "en"): string {
+  if (locale === "en") {
+    return [
+      "favimaker — generated favicon package",
+      "",
+      "Files:",
+      "  favicon.ico                              — legacy browsers / Windows (16+32+48)",
+      "  favicon-16x16.png                        — browser tab",
+      "  favicon-32x32.png                        — browser tab (retina)",
+      "  favicon-96x96.png                        — legacy Chrome / Android",
+      "  apple-touch-icon.png (180x180)           — iOS / macOS Safari home screen",
+      "  android-chrome-192x192.png               — Android Chrome (standard)",
+      "  android-chrome-512x512.png               — Android Chrome (large) + PWA splash",
+      "  android-chrome-maskable-192x192.png      — Android launcher with mask (safe zone)",
+      "  android-chrome-maskable-512x512.png      — same for large",
+      "  mstile-150x150.png                       — Windows pinned tile",
+      "  site.webmanifest                         — PWA manifest (with maskable variants)",
+      "  browserconfig.xml                        — Windows tiles config",
+      "  README.html-snippet.html                 — ready <link> tags for <head>",
+      "",
+      "Installation:",
+      "  1. Unpack everything into /public of your site root.",
+      "  2. Paste contents of README.html-snippet.html into your <head>.",
+      "",
+      "macOS Safari pinned tab (safari-pinned-tab.svg) skipped —",
+      "it requires monochrome SVG generation. Safari works fine without it.",
+      "",
+      "Generated with favimaker (https://github.com/mikey-semy/favimaker)",
+    ].join("\n");
+  }
+  return [
+    "favimaker — сгенерированный пакет favicon",
+    "",
+    "Файлы:",
+    "  favicon.ico                              — старые браузеры / Windows (16+32+48)",
+    "  favicon-16x16.png                        — браузерная вкладка",
+    "  favicon-32x32.png                        — браузерная вкладка retina",
+    "  favicon-96x96.png                        — legacy Chrome / Android",
+    "  apple-touch-icon.png (180x180)           — iOS / macOS Safari home screen",
+    "  android-chrome-192x192.png               — Android Chrome (стандарт)",
+    "  android-chrome-512x512.png               — Android Chrome (large) + PWA splash",
+    "  android-chrome-maskable-192x192.png      — Android-launcher с обрезкой (safe zone)",
+    "  android-chrome-maskable-512x512.png      — то же для large",
+    "  mstile-150x150.png                       — Windows pinned tile",
+    "  site.webmanifest                         — PWA-манифест (с maskable-вариантами)",
+    "  browserconfig.xml                        — config для Windows tiles",
+    "  README.html-snippet.html                 — готовые <link> для <head>",
+    "",
+    "Установка:",
+    "  1. Распакуйте всё в /public корня сайта.",
+    "  2. Вставьте содержимое README.html-snippet.html в <head>.",
+    "",
+    "macOS Safari pinned tab (safari-pinned-tab.svg) пропущен —",
+    "требует одноцветной SVG-генерации. Safari работает и без него.",
+    "",
+    "Сгенерировано favimaker (https://github.com/mikey-semy/favimaker)",
+  ].join("\n");
+}
+
 /** Подготовить конфиг под maskable-рендер: safe-zone + непрозрачный фон. */
 function toMaskableConfig(config: FaviconConfig): FaviconConfig {
   const next = { ...config };
@@ -58,6 +117,7 @@ function toMaskableConfig(config: FaviconConfig): FaviconConfig {
 export async function buildFaviconZip(
   config: FaviconConfig,
   appName: string,
+  locale: "ru" | "en" = "ru",
 ): Promise<Blob> {
   const zip = new JSZip();
 
@@ -90,37 +150,7 @@ export async function buildFaviconZip(
   zip.file("browserconfig.xml", buildBrowserConfig(config));
   zip.file("README.html-snippet.html", buildHtmlSnippet());
 
-  // README в zip-е
-  zip.file(
-    "README.txt",
-    [
-      "favimaker — сгенерированный пакет favicon",
-      "",
-      "Файлы:",
-      "  favicon.ico                              — старые браузеры / Windows (16+32+48)",
-      "  favicon-16x16.png                        — браузерная вкладка",
-      "  favicon-32x32.png                        — браузерная вкладка retina",
-      "  favicon-96x96.png                        — legacy Chrome / Android",
-      "  apple-touch-icon.png (180x180)           — iOS / macOS Safari home screen",
-      "  android-chrome-192x192.png               — Android Chrome (стандарт)",
-      "  android-chrome-512x512.png               — Android Chrome (large) + PWA splash",
-      "  android-chrome-maskable-192x192.png      — Android-launcher с обрезкой (safe zone)",
-      "  android-chrome-maskable-512x512.png      — то же для large",
-      "  mstile-150x150.png                       — Windows pinned tile",
-      "  site.webmanifest                         — PWA-манифест (с maskable-вариантами)",
-      "  browserconfig.xml                        — config для Windows tiles",
-      "  README.html-snippet.html                 — готовые <link> для <head>",
-      "",
-      "Установка:",
-      "  1. Распакуйте всё в /public корня сайта.",
-      "  2. Вставьте содержимое README.html-snippet.html в <head>.",
-      "",
-      "macOS Safari pinned tab (safari-pinned-tab.svg) пропущен —",
-      "требует одноцветной SVG-генерации. Safari работает и без него.",
-      "",
-      "Сгенерировано favimaker (https://github.com/mikey-semy/favimaker)",
-    ].join("\n"),
-  );
+  zip.file("README.txt", buildReadmeText(locale));
 
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }

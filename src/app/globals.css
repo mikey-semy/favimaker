@@ -90,6 +90,37 @@ body {
     8px 0;
 }
 
+/* smooth fade-in для контента вкладок Editor — снижает «прыжок» панели
+   при переключении табов (height: auto не транзишинится напрямую). */
+@keyframes tab-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.tab-content {
+  animation: tab-enter 180ms ease-out;
+}
+
+/* Slide-in toast из правого края */
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.toast-anim {
+  animation: toast-slide-in 200ms ease-out;
+}
+
 /* нативный <option> в <select> — браузеры допускают bg+color через CSS
    (Chrome/Firefox/Edge), Safari использует системный стиль */
 select option {

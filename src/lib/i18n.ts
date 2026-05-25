@@ -129,9 +129,13 @@ const dict = {
   // misc
   "msg.shareCopied": { ru: "Ссылка скопирована", en: "Link copied" },
   "msg.shareFallback": {
-    ru: "Скопируйте ссылку вручную:",
-    en: "Copy this link manually:",
+    ru: "Не удалось скопировать ссылку",
+    en: "Failed to copy link",
   },
+
+  // footer
+  "footer.builtWith": { ru: "Open source · MIT · собрано с", en: "Open source · MIT · built with" },
+  "footer.fontsBy": { ru: "Шрифты:", en: "Fonts:" },
 } as const;
 
 type DictKey = keyof typeof dict;

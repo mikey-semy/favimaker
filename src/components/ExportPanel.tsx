@@ -5,12 +5,13 @@ import { Check, Copy, Download, Loader2 } from "lucide-react";
 import { useConfig } from "@/lib/store";
 import { buildFaviconZip, downloadBlob } from "@/lib/export";
 import { buildHtmlSnippet } from "@/lib/manifest";
-import { useT } from "@/lib/i18n";
+import { useLocale, useT } from "@/lib/i18n";
 import { Button, TextInput } from "./inputs";
 
 export function ExportPanel() {
   const config = useConfig((s) => s.config);
   const t = useT();
+  const locale = useLocale((s) => s.locale);
   const [appName, setAppName] = React.useState("Site");
   const [busy, setBusy] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
@@ -18,7 +19,7 @@ export function ExportPanel() {
   const handleDownload = async () => {
     setBusy(true);
     try {
-      const blob = await buildFaviconZip(config, appName);
+      const blob = await buildFaviconZip(config, appName, locale);
       downloadBlob(blob, `favicon-${(appName || "site").toLowerCase()}.zip`);
     } finally {
       setBusy(false);

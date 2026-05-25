@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { ThemeScript } from "@/lib/theme";
 import { Analytics } from "@/components/Analytics";
+import { Toaster } from "@/components/Toaster";
 import "./globals.css";
 
 const inter = Inter({
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body className={`${inter.variable} ${jetbrains.variable} antialiased`}>
         {children}
+        <Toaster />
         <Analytics />
       </body>
     </html>
