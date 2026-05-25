@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
-:root {
+/* === DARK (по умолчанию) === */
+:root,
+[data-theme="dark"] {
   --bg: #0d0d0e;
   --surface: #18181a;
   --surface-2: #222226;
@@ -13,7 +15,30 @@
   --accent-ink: #ffffff;
   --danger: #ef4444;
   --success: #22c55e;
+  /* checker (для прозрачного фона иконки) */
+  --checker-1: #1f1f23;
+  --checker-2: transparent;
+}
 
+/* === LIGHT === */
+[data-theme="light"] {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-2: #f2f2f4;
+  --line: #e4e4e7;
+  --ink: #18181b;
+  --ink-2: #3f3f46;
+  --muted: #71717a;
+  --accent: #7c5cff;
+  --accent-hover: #6d4dff;
+  --accent-ink: #ffffff;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --checker-1: #d4d4d8;
+  --checker-2: transparent;
+}
+
+:root {
   --r-sm: 6px;
   --r-md: 10px;
   --r-lg: 16px;
@@ -44,15 +69,19 @@ body {
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
-/* checker pattern для preview-фона (видно прозрачность) */
+/* checker pattern для preview-фона (видно прозрачность). Цвета через CSS-vars
+   чтобы менялись вместе с темой. */
 .checker {
   background-image:
-    linear-gradient(45deg, #1f1f23 25%, transparent 25%),
-    linear-gradient(-45deg, #1f1f23 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #1f1f23 75%),
-    linear-gradient(-45deg, transparent 75%, #1f1f23 75%);
+    linear-gradient(45deg, var(--checker-1) 25%, var(--checker-2) 25%),
+    linear-gradient(-45deg, var(--checker-1) 25%, var(--checker-2) 25%),
+    linear-gradient(45deg, var(--checker-2) 75%, var(--checker-1) 75%),
+    linear-gradient(-45deg, var(--checker-2) 75%, var(--checker-1) 75%);
   background-size: 16px 16px;
   background-position:
     0 0,

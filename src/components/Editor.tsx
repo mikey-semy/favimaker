@@ -8,7 +8,6 @@ import {
   Square,
   Circle,
   Squircle,
-  Paintbrush,
   RotateCcw,
   Share2,
 } from "lucide-react";
@@ -19,25 +18,15 @@ import {
   loadGoogleFont,
   type GoogleFont,
 } from "@/lib/google-fonts";
+import { useT } from "@/lib/i18n";
 import { Button, ColorInput, Select, Slider, SegmentedControl, TextInput } from "./inputs";
 import { Field, FieldRow } from "./Field";
-import { DEFAULT_CONFIG } from "@/lib/types";
+import { DropZone } from "./DropZone";
+import { Presets } from "./Presets";
 
 export function Editor() {
   const { config, set, setGradient, reset } = useConfig();
-
-  const onImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        set("imageDataUrl", reader.result);
-        set("source", "image");
-      }
-    };
-    reader.readAsDataURL(file);
-  };
+  const t = useT();
 
   const onShare = async () => {
     const json = JSON.stringify(config);
@@ -45,24 +34,38 @@ export function Editor() {
     const url = `${window.location.origin}${window.location.pathname}#config=${compressed}`;
     try {
       await navigator.clipboard.writeText(url);
-      alert("Ссылка скопирована в буфер обмена");
+      alert(t("msg.shareCopied"));
     } catch {
-      prompt("Скопируйте ссылку вручную:", url);
+      prompt(t("msg.shareFallback"), url);
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* SOURCE: text / emoji / image */}
+      {/* PRESETS */}
       <section>
-        <h3 className="text-[11px] uppercase tracking-wider text-muted mb-3">Источник</h3>
+        <h3 className="text-[11px] uppercase tracking-wider text-muted mb-3">
+          {t("section.presets")}
+        </h3>
+        <Presets />
+      </section>
+
+      {/* SOURCE */}
+      <section>
+        <h3 className="text-[11px] uppercase tracking-wider text-muted mb-3">
+          {t("section.source")}
+        </h3>
         <SegmentedControl
           value={config.source}
           onChange={(v) => set("source", v)}
           options={[
-            { value: "text", label: "Текст", icon: <Type className="size-3.5" /> },
-            { value: "emoji", label: "Эмодзи", icon: <Smile className="size-3.5" /> },
-            { value: "image", label: "Картинка", icon: <ImageIcon className="size-3.5" /> },
+            { value: "text", label: t("source.text"), icon: <Type className="size-3.5" /> },
+            { value: "emoji", label: t("source.emoji"), icon: <Smile className="size-3.5" /> },
+            {
+              value: "image",
+              label: t("source.image"),
+              icon: <ImageIcon className="size-3.5" />,
+            },
           ]}
           className="w-full"
         />
@@ -78,7 +81,7 @@ export function Editor() {
               />
               <FontPicker />
               <FieldRow>
-                <Field label="Жирность" hint={`${config.fontWeight}`}>
+                <Field label={t("field.fontWeight")} hint={`${config.fontWeight}`}>
                   <Select
                     value={config.fontWeight}
                     onChange={(e) => set("fontWeight", Number(e.target.value))}
@@ -90,7 +93,7 @@ export function Editor() {
                     ))}
                   </Select>
                 </Field>
-                <Field label="Размер" hint={`${config.fontSizePct}%`}>
+                <Field label={t("field.fontSize")} hint={`${config.fontSizePct}%`}>
                   <Slider
                     value={config.fontSizePct}
                     onChange={(v) => set("fontSizePct", v)}
@@ -100,11 +103,11 @@ export function Editor() {
                 </Field>
               </FieldRow>
               <FieldRow>
-                <Field label="Цвет текста">
+                <Field label={t("field.textColor")}>
                   <ColorInput value={config.textColor} onChange={(v) => set("textColor", v)} />
                 </Field>
                 <Field
-                  label="Letter-spacing"
+                  label={t("field.letterSpacing")}
                   hint={`${config.letterSpacing.toFixed(2)}em`}
                 >
                   <Slider
@@ -128,45 +131,32 @@ export function Editor() {
             />
           )}
 
-          {config.source === "image" && (
-            <div>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                onChange={onImageUpload}
-                className="block w-full text-sm text-ink-2 file:mr-3 file:rounded-[var(--r-md)] file:border-0 file:bg-accent file:px-3 file:py-2 file:text-sm file:font-medium file:text-[var(--accent-ink)] file:cursor-pointer"
-              />
-              {config.imageDataUrl && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => set("imageDataUrl", null)}
-                  className="mt-2"
-                >
-                  Убрать картинку
-                </Button>
-              )}
-            </div>
-          )}
+          {config.source === "image" && <DropZone />}
         </div>
       </section>
 
       {/* SHAPE */}
       <section>
-        <h3 className="text-[11px] uppercase tracking-wider text-muted mb-3">Форма</h3>
+        <h3 className="text-[11px] uppercase tracking-wider text-muted mb-3">
+          {t("section.shape")}
+        </h3>
         <SegmentedControl
           value={config.shape}
           onChange={(v) => set("shape", v)}
           options={[
-            { value: "square", label: "Квадрат", icon: <Square className="size-3.5" /> },
-            { value: "rounded", label: "Скруглённый", icon: <Squircle className="size-3.5" /> },
-            { value: "circle", label: "Круг", icon: <Circle className="size-3.5" /> },
+            { value: "square", label: t("field.shapeSquare"), icon: <Square className="size-3.5" /> },
+            {
+              value: "rounded",
+              label: t("field.shapeRounded"),
+              icon: <Squircle className="size-3.5" />,
+            },
+            { value: "circle", label: t("field.shapeCircle"), icon: <Circle className="size-3.5" /> },
           ]}
           className="w-full"
         />
         {config.shape === "rounded" && (
           <div className="mt-3">
-            <Field label="Скругление" hint={`${config.borderRadiusPct}%`}>
+            <Field label={t("field.borderRadius")} hint={`${config.borderRadiusPct}%`}>
               <Slider
                 value={config.borderRadiusPct}
                 onChange={(v) => set("borderRadiusPct", v)}
@@ -177,7 +167,7 @@ export function Editor() {
           </div>
         )}
         <div className="mt-3">
-          <Field label="Внутренний отступ" hint={`${config.paddingPct}%`}>
+          <Field label={t("field.padding")} hint={`${config.paddingPct}%`}>
             <Slider
               value={config.paddingPct}
               onChange={(v) => set("paddingPct", v)}
@@ -190,14 +180,16 @@ export function Editor() {
 
       {/* BACKGROUND */}
       <section>
-        <h3 className="text-[11px] uppercase tracking-wider text-muted mb-3">Фон</h3>
+        <h3 className="text-[11px] uppercase tracking-wider text-muted mb-3">
+          {t("section.background")}
+        </h3>
         <SegmentedControl
           value={config.bgMode}
           onChange={(v) => set("bgMode", v)}
           options={[
-            { value: "solid", label: "Сплошной" },
-            { value: "gradient", label: "Градиент" },
-            { value: "transparent", label: "Прозрачный" },
+            { value: "solid", label: t("field.bgSolid") },
+            { value: "gradient", label: t("field.bgGradient") },
+            { value: "transparent", label: t("field.bgTransparent") },
           ]}
           className="w-full"
         />
@@ -209,20 +201,20 @@ export function Editor() {
         {config.bgMode === "gradient" && (
           <div className="mt-3 space-y-3">
             <FieldRow>
-              <Field label="От">
+              <Field label={t("field.gradientFrom")}>
                 <ColorInput
                   value={config.bgGradient.from}
                   onChange={(v) => setGradient("from", v)}
                 />
               </Field>
-              <Field label="До">
+              <Field label={t("field.gradientTo")}>
                 <ColorInput
                   value={config.bgGradient.to}
                   onChange={(v) => setGradient("to", v)}
                 />
               </Field>
             </FieldRow>
-            <Field label="Направление">
+            <Field label={t("field.gradientDirection")}>
               <Select
                 value={config.bgGradient.direction}
                 onChange={(e) =>
@@ -232,15 +224,15 @@ export function Editor() {
                   )
                 }
               >
-                <option value="to-br">↘ к нижне-правому</option>
-                <option value="to-r">→ вправо</option>
-                <option value="to-b">↓ вниз</option>
-                <option value="to-bl">↙ к нижне-левому</option>
-                <option value="to-tr">↗ к верхне-правому</option>
-                <option value="to-tl">↖ к верхне-левому</option>
-                <option value="to-t">↑ вверх</option>
-                <option value="to-l">← влево</option>
-                <option value="radial">⊙ радиальный</option>
+                <option value="to-br">{t("grad.br")}</option>
+                <option value="to-r">{t("grad.r")}</option>
+                <option value="to-b">{t("grad.b")}</option>
+                <option value="to-bl">{t("grad.bl")}</option>
+                <option value="to-tr">{t("grad.tr")}</option>
+                <option value="to-tl">{t("grad.tl")}</option>
+                <option value="to-t">{t("grad.t")}</option>
+                <option value="to-l">{t("grad.l")}</option>
+                <option value="radial">{t("grad.radial")}</option>
               </Select>
             </Field>
           </div>
@@ -249,33 +241,96 @@ export function Editor() {
 
       {/* EFFECTS */}
       <section>
-        <h3 className="text-[11px] uppercase tracking-wider text-muted mb-3">Эффекты</h3>
-        <FieldRow>
-          <Field label="Бордер" hint={`${config.borderWidth}%`}>
-            <Slider
-              value={config.borderWidth}
-              onChange={(v) => set("borderWidth", v)}
-              min={0}
-              max={10}
+        <h3 className="text-[11px] uppercase tracking-wider text-muted mb-3">
+          {t("section.effects")}
+        </h3>
+        <div className="space-y-3">
+          {/* Тень */}
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-ink-2 hover:text-ink">
+            <input
+              type="checkbox"
+              checked={config.shadow}
+              onChange={(e) => set("shadow", e.target.checked)}
+              className="accent-accent"
             />
-          </Field>
-          {config.borderWidth > 0 && (
-            <Field label="Цвет бордера">
-              <ColorInput value={config.borderColor} onChange={(v) => set("borderColor", v)} />
-            </Field>
+            {t("field.shadow")}
+          </label>
+          {config.shadow && (
+            <div className="space-y-3 pl-5 border-l border-line">
+              <Field label={t("field.shadowColor")}>
+                <ColorInput value={config.shadowColor} onChange={(v) => set("shadowColor", v)} />
+              </Field>
+              <FieldRow>
+                <Field label={t("field.shadowBlur")} hint={`${config.shadowBlur}%`}>
+                  <Slider
+                    value={config.shadowBlur}
+                    onChange={(v) => set("shadowBlur", v)}
+                    min={0}
+                    max={30}
+                  />
+                </Field>
+                <Field label={t("field.shadowOffsetY")} hint={`${config.shadowOffsetY}%`}>
+                  <Slider
+                    value={config.shadowOffsetY}
+                    onChange={(v) => set("shadowOffsetY", v)}
+                    min={-20}
+                    max={20}
+                  />
+                </Field>
+              </FieldRow>
+            </div>
           )}
-        </FieldRow>
+
+          {/* Обводка текста (только если source=text) */}
+          {config.source === "text" && (
+            <>
+              <Field label={t("field.textStroke")} hint={`${config.textStrokeWidth}%`}>
+                <Slider
+                  value={config.textStrokeWidth}
+                  onChange={(v) => set("textStrokeWidth", v)}
+                  min={0}
+                  max={10}
+                />
+              </Field>
+              {config.textStrokeWidth > 0 && (
+                <Field label={t("field.strokeColor")}>
+                  <ColorInput
+                    value={config.textStrokeColor ?? "#000000"}
+                    onChange={(v) => set("textStrokeColor", v)}
+                  />
+                </Field>
+              )}
+            </>
+          )}
+
+          {/* Бордер */}
+          <FieldRow>
+            <Field label={t("field.border")} hint={`${config.borderWidth}%`}>
+              <Slider
+                value={config.borderWidth}
+                onChange={(v) => set("borderWidth", v)}
+                min={0}
+                max={10}
+              />
+            </Field>
+            {config.borderWidth > 0 && (
+              <Field label={t("field.borderColor")}>
+                <ColorInput value={config.borderColor} onChange={(v) => set("borderColor", v)} />
+              </Field>
+            )}
+          </FieldRow>
+        </div>
       </section>
 
       {/* ACTIONS */}
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-line">
         <Button variant="ghost" size="sm" onClick={reset}>
           <RotateCcw className="size-3.5" />
-          Сброс
+          {t("btn.reset")}
         </Button>
         <Button variant="ghost" size="sm" onClick={onShare}>
           <Share2 className="size-3.5" />
-          Поделиться
+          {t("btn.share")}
         </Button>
       </div>
     </div>
@@ -284,12 +339,12 @@ export function Editor() {
 
 function FontPicker() {
   const { config, set } = useConfig();
+  const t = useT();
   const [allFonts, setAllFonts] = React.useState<GoogleFont[] | null>(null);
   const [loadingAll, setLoadingAll] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const [cyrillicOnly, setCyrillicOnly] = React.useState(false);
 
-  // Подгружаем выбранный шрифт перед canvas-рендером
   React.useEffect(() => {
     const list = allFonts ?? POPULAR_FONTS;
     const font = list.find((f) => f.family === config.fontFamily);
@@ -302,7 +357,7 @@ function FontPicker() {
       const fonts = await fetchAllFonts();
       setAllFonts(fonts);
     } catch {
-      // не удалось — остаёмся на курируемом списке
+      // нет сети — остаёмся на курируемом
     } finally {
       setLoadingAll(false);
     }
@@ -316,7 +371,6 @@ function FontPicker() {
       const q = search.trim().toLowerCase();
       list = list.filter((f) => f.family.toLowerCase().includes(q));
     }
-    // Сортируем по category → имени
     return [...list].sort((a, b) => {
       if (a.category !== b.category) return a.category.localeCompare(b.category);
       return a.family.localeCompare(b.family);
@@ -333,22 +387,14 @@ function FontPicker() {
     return map;
   }, [filtered]);
 
-  const categoryLabel: Record<GoogleFont["category"], string> = {
-    "sans-serif": "Sans-serif",
-    display: "Display",
-    serif: "Serif",
-    monospace: "Monospace",
-    handwriting: "Handwriting",
-  };
-
   return (
     <div className="space-y-2">
       <Field
-        label={`Шрифт (${filtered.length}${allFonts ? ` из ${allFonts.length}` : "+"})`}
+        label={`${t("fonts.fontLabel")} (${filtered.length}${allFonts ? ` / ${allFonts.length}` : "+"})`}
       >
         <Select value={config.fontFamily} onChange={(e) => set("fontFamily", e.target.value)}>
           {Array.from(grouped.entries()).map(([cat, fonts]) => (
-            <optgroup key={cat} label={categoryLabel[cat]}>
+            <optgroup key={cat} label={cat}>
               {fonts.map((f) => (
                 <option key={f.family} value={f.family}>
                   {f.family}
@@ -364,7 +410,7 @@ function FontPicker() {
         <TextInput
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Поиск..."
+          placeholder={t("fonts.search")}
         />
         <label className="flex items-center gap-2 px-3 text-xs text-ink-2 cursor-pointer">
           <input
@@ -373,19 +419,21 @@ function FontPicker() {
             onChange={(e) => setCyrillicOnly(e.target.checked)}
             className="accent-accent"
           />
-          Только кириллица
+          {t("fonts.cyrillicOnly")}
         </label>
       </FieldRow>
 
       {!allFonts && (
-        <Button variant="ghost" size="sm" onClick={onLoadAll} disabled={loadingAll} className="w-full">
-          {loadingAll ? "Загружаю каталог..." : "Загрузить все ~1500 шрифтов из Google Fonts"}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onLoadAll}
+          disabled={loadingAll}
+          className="w-full"
+        >
+          {loadingAll ? t("btn.loadingFonts") : t("btn.loadAllFonts")}
         </Button>
       )}
     </div>
   );
 }
-
-// Заглушка — Paintbrush импортирован но не используется явно (для возможного добавления эффектов потом).
-void Paintbrush;
-void DEFAULT_CONFIG;

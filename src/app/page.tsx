@@ -5,10 +5,14 @@ import { Github } from "lucide-react";
 import { Editor } from "@/components/Editor";
 import { Preview } from "@/components/Preview";
 import { ExportPanel } from "@/components/ExportPanel";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { LangToggle } from "@/components/LangToggle";
 import { useConfig } from "@/lib/store";
+import { useT } from "@/lib/i18n";
 
 export default function HomePage() {
   const { replace } = useConfig();
+  const t = useT();
 
   // Восстановить config из URL hash при загрузке (#config=base64(json))
   React.useEffect(() => {
@@ -35,38 +39,41 @@ export default function HomePage() {
             </div>
             <div>
               <h1 className="text-sm font-semibold leading-none">favimaker</h1>
-              <p className="text-[11px] text-muted leading-none mt-1">
-                Favicon-генератор в браузере
+              <p className="text-[11px] text-muted leading-none mt-1" suppressHydrationWarning>
+                {t("header.subtitle")}
               </p>
             </div>
           </div>
-          <a
-            href="https://github.com/mikey-semy/favimaker"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted hover:text-ink transition-colors"
-            aria-label="GitHub"
-          >
-            <Github className="size-5" />
-          </a>
+          <div className="flex items-center gap-1">
+            <LangToggle />
+            <ThemeToggle />
+            <a
+              href="https://github.com/mikey-semy/favimaker"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center size-8 rounded-[var(--r-md)] text-muted hover:text-ink hover:bg-surface-2 transition-colors"
+              aria-label="GitHub"
+            >
+              <Github className="size-4" />
+            </a>
+          </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-[1600px] px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr_320px] gap-6">
-          {/* LEFT: editor */}
-          <aside className="bg-surface rounded-[var(--r-lg)] border border-line p-5 h-fit lg:sticky lg:top-6">
+          <aside className="bg-surface rounded-[var(--r-lg)] border border-line p-5 h-fit lg:sticky lg:top-6 max-h-[calc(100vh-3rem)] overflow-y-auto">
             <Editor />
           </aside>
 
-          {/* CENTER: preview */}
           <section className="space-y-4">
             <Preview />
           </section>
 
-          {/* RIGHT: export */}
           <aside className="bg-surface rounded-[var(--r-lg)] border border-line p-5 h-fit lg:sticky lg:top-6">
-            <h2 className="text-sm font-semibold mb-4">Экспорт</h2>
+            <h2 className="text-sm font-semibold mb-4" suppressHydrationWarning>
+              {t("section.export")}
+            </h2>
             <ExportPanel />
           </aside>
         </div>

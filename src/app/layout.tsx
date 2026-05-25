@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { ThemeScript } from "@/lib/theme";
+import { Analytics } from "@/components/Analytics";
 import "./globals.css";
 
 const inter = Inter({
@@ -17,13 +19,19 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "favimaker — Favicon generator",
   description:
-    "Сделай fav-иконку и весь сопутствующий набор (manifest, apple-touch-icon, android-chrome) в браузере. Любой Google-шрифт, любой цвет, любая форма.",
+    "Сделай favicon и весь сопутствующий набор (manifest, apple-touch, android-chrome, maskable) в браузере. Любой Google-шрифт, любой цвет, любая форма.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ru">
-      <body className={`${inter.variable} ${jetbrains.variable} antialiased`}>{children}</body>
+    <html lang="ru" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
+      <body className={`${inter.variable} ${jetbrains.variable} antialiased`}>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
