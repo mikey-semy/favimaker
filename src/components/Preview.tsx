@@ -91,11 +91,11 @@ export function Preview() {
     <div className="space-y-3">
       {/* Топ: большое превью + 3 размера + 2 темы */}
       <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-3">
-        {/* Большое (200px) на checker — слева */}
-        <div className="checker rounded-[var(--r-lg)] p-3 flex items-center justify-center">
-          <div className="bg-surface rounded-[var(--r-md)] p-2">
-            <PreviewCanvasResponsive maxPx={180} />
-          </div>
+        {/* Большое (200px) на checker — слева. Никакой обёртки между checker
+            и canvas, иначе прозрачные части иконки показывают обёртку, а не
+            checker (выглядит как «не прозрачный»). */}
+        <div className="checker rounded-[var(--r-lg)] p-6 flex items-center justify-center">
+          <PreviewCanvasResponsive maxPx={180} />
         </div>
 
         {/* Правая часть: размеры + темы */}
