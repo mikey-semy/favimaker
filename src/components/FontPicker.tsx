@@ -11,8 +11,8 @@ import {
   loadGoogleFont,
   type GoogleFont,
 } from "@/lib/google-fonts";
-import { TextInput, Button } from "./inputs";
-import { Field, FieldRow } from "./Field";
+import { TextInput } from "./inputs";
+import { Field } from "./Field";
 import { cn } from "@/lib/cn";
 
 /**
@@ -84,16 +84,25 @@ export function FontPicker() {
     setActiveIndex(0);
   };
 
-  const onLoadAll = async () => {
+  // Автоподгрузка каталога — фоновый fetch при первом открытии (в обработчике,
+  // не useEffect, чтобы не нарушать react-hooks/set-state-in-effect).
+  // Курируемый список доступен сразу, через ~1-2с расширяется до ~1500.
+  // Module-level кэш + shared promise дедуплицируют повторные запросы.
+  const triggerLoadIfNeeded = () => {
+    if (allFonts || loadingAll) return;
     setLoadingAll(true);
-    try {
-      const fonts = await fetchAllFonts();
-      setAllFonts(fonts);
-    } catch {
-      // нет сети — остаёмся на курируемом
-    } finally {
-      setLoadingAll(false);
-    }
+    fetchAllFonts()
+      .then(setAllFonts)
+      .catch(() => {
+        // нет сети — остаёмся на курируемом
+      })
+      .finally(() => setLoadingAll(false));
+  };
+
+  const handleToggleOpen = () => {
+    const next = !open;
+    setOpen(next);
+    if (next) triggerLoadIfNeeded();
   };
 
   // Скролл к выбранной/активной опции при ↑↓
@@ -119,33 +128,57 @@ export function FontPicker() {
     }
   };
 
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (!open) {
-      if (e.key === "Enter" || e.key === "ArrowDown" || e.key === " ") {
-        e.preventDefault();
-        setOpen(true);
-      }
-      return;
-    }
-    if (e.key === "Escape" || e.key === "Enter") {
+  // Локальный обработчик для кнопки-триггера (открытие по Enter/Space/↓)
+  const onTriggerKeyDown = (e: React.KeyboardEvent) => {
+    if (!open && (e.key === "Enter" || e.key === "ArrowDown" || e.key === " ")) {
       e.preventDefault();
-      setOpen(false);
-      return;
-    }
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      applyIdx((currentIdx >= 0 ? currentIdx : activeIndex) + 1);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      applyIdx((currentIdx >= 0 ? currentIdx : activeIndex) - 1);
-    } else if (e.key === "Home") {
-      e.preventDefault();
-      applyIdx(0);
-    } else if (e.key === "End") {
-      e.preventDefault();
-      applyIdx(visibleFonts.length - 1);
+      setOpen(true);
+      triggerLoadIfNeeded();
     }
   };
+
+  // Глобальный keydown когда dropdown открыт — стрелки/Home/End/Esc срабатывают
+  // независимо от того где фокус (input/опции/где-то ещё). Это и есть «удобный
+  // перебор» — нажал ↓ и шрифт сменился.
+  React.useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      // Не перехватываем стандартное редактирование в search-input
+      const target = e.target as HTMLElement | null;
+      const isTypingInInput =
+        target?.tagName === "INPUT" &&
+        (target as HTMLInputElement).type === "text" &&
+        e.key !== "ArrowDown" &&
+        e.key !== "ArrowUp" &&
+        e.key !== "Enter" &&
+        e.key !== "Escape" &&
+        e.key !== "Home" &&
+        e.key !== "End";
+      if (isTypingInInput) return;
+
+      if (e.key === "Escape" || e.key === "Enter") {
+        e.preventDefault();
+        setOpen(false);
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        applyIdx((currentIdx >= 0 ? currentIdx : activeIndex) + 1);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        applyIdx((currentIdx >= 0 ? currentIdx : activeIndex) - 1);
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        applyIdx(0);
+      } else if (e.key === "End") {
+        e.preventDefault();
+        applyIdx(visibleFonts.length - 1);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, currentIdx, activeIndex, visibleFonts]);
 
   return (
     <div className="space-y-2">
@@ -153,8 +186,8 @@ export function FontPicker() {
         <div ref={containerRef} className="relative">
           <button
             type="button"
-            onClick={() => setOpen((v) => !v)}
-            onKeyDown={onKeyDown}
+            onClick={handleToggleOpen}
+            onKeyDown={onTriggerKeyDown}
             className="flex w-full items-center justify-between gap-2 rounded-[var(--r-md)] bg-surface-2 border border-line px-3 py-2 text-sm text-ink outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20 cursor-pointer"
             aria-haspopup="listbox"
             aria-expanded={open}
@@ -173,14 +206,12 @@ export function FontPicker() {
                   onChange={(e) => onSearchChange(e.target.value)}
                   placeholder={t("fonts.search")}
                   autoFocus
-                  onKeyDown={onKeyDown}
                 />
               </div>
               <div
                 ref={listRef}
                 role="listbox"
                 tabIndex={-1}
-                onKeyDown={onKeyDown}
                 className="max-h-72 overflow-y-auto"
               >
                 {visibleFonts.length === 0 ? (
@@ -234,8 +265,8 @@ export function FontPicker() {
         </div>
       </Field>
 
-      <FieldRow>
-        <label className="flex items-center gap-2 px-3 text-xs text-ink-2 cursor-pointer">
+      <div className="flex items-center justify-between gap-2 px-1">
+        <label className="flex items-center gap-2 text-xs text-ink-2 cursor-pointer">
           <input
             type="checkbox"
             checked={cyrillicOnly}
@@ -244,12 +275,12 @@ export function FontPicker() {
           />
           {t("fonts.cyrillicOnly")}
         </label>
-        {!allFonts && (
-          <Button variant="ghost" size="sm" onClick={onLoadAll} disabled={loadingAll}>
-            {loadingAll ? t("btn.loadingFonts") : t("btn.loadAllFontsShort")}
-          </Button>
+        {loadingAll && (
+          <span className="text-[10px] text-muted">
+            {t("btn.loadingFonts")}
+          </span>
         )}
-      </FieldRow>
+      </div>
     </div>
   );
 }
