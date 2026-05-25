@@ -141,11 +141,7 @@ export function IconPicker() {
         className="w-full text-xs text-muted hover:text-ink-2 transition-colors text-center py-1"
         disabled={loading}
       >
-        {showAll
-          ? "Курируемый набор (быстро)"
-          : loading
-            ? "Загружаю каталог…"
-            : "Показать все ~1500 иконок Lucide"}
+        {showAll ? t("btn.curatedIcons") : loading ? t("btn.loadingIcons") : t("btn.loadAllIcons")}
       </button>
 
       {showAll && !iconsRecord ? (
@@ -167,7 +163,7 @@ export function IconPicker() {
           onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
           className="w-full text-xs text-muted hover:text-ink-2 transition-colors text-center py-2 border border-line rounded-[var(--r-md)] hover:bg-surface-2"
         >
-          Показать ещё ({displayedNames.length - visibleCount})
+          {t("btn.showMore")} ({displayedNames.length - visibleCount})
         </button>
       )}
     </div>
@@ -255,12 +251,13 @@ function CuratedByCategory({
   selectedName: string;
   onSelect: (name: string) => void;
 }) {
+  const t = useT();
   return (
     <div className="max-h-72 overflow-y-auto space-y-3 -mx-1 px-1">
       {ICON_LIBRARY.map((group) => (
         <div key={group.category}>
           <p className="text-[10px] uppercase tracking-wider text-muted mb-1.5">
-            {group.category}
+            {t(group.category as Parameters<typeof t>[0])}
           </p>
           <div className="grid grid-cols-6 gap-1">
             {group.names.map((name) => (

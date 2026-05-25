@@ -30,7 +30,7 @@ export default function HomePage() {
   }, [replace]);
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen flex flex-col">
       <header className="border-b border-line">
         <div className="mx-auto max-w-[1600px] px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -60,7 +60,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1600px] px-4 py-4 lg:px-6 lg:py-6">
+      <div className="mx-auto max-w-[1600px] px-4 py-4 lg:px-6 lg:py-6 flex-1">
         <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr_300px] gap-3 lg:gap-4">
           {/* max-h+overflow только на десктопе — на мобильном это создавало
               nested-scroll и юзер не мог нормально прокручивать страницу */}

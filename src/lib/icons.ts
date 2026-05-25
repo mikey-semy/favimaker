@@ -2,10 +2,12 @@
  * Курируемый набор lucide-иконок для favicon. Сгруппирован по темам,
  * имена соответствуют экспортам из lucide-react (PascalCase). На canvas
  * рендерим через renderToStaticMarkup → SVG-Blob → Image (см. renderer.ts).
+ *
+ * Категории хранятся как i18n-ключи — UI переводит через useT().
  */
 export const ICON_LIBRARY: { category: string; names: string[] }[] = [
   {
-    category: "Популярные",
+    category: "icon.cat.popular",
     names: [
       "Heart",
       "Star",
@@ -22,7 +24,7 @@ export const ICON_LIBRARY: { category: string; names: string[] }[] = [
     ],
   },
   {
-    category: "Технологии",
+    category: "icon.cat.tech",
     names: [
       "Code",
       "Code2",
@@ -39,11 +41,11 @@ export const ICON_LIBRARY: { category: string; names: string[] }[] = [
     ],
   },
   {
-    category: "Связь",
+    category: "icon.cat.communication",
     names: ["Mail", "MessageSquare", "MessageCircle", "Send", "Phone", "Bell", "BellRing"],
   },
   {
-    category: "Объекты",
+    category: "icon.cat.objects",
     names: [
       "Briefcase",
       "BookOpen",
@@ -60,7 +62,7 @@ export const ICON_LIBRARY: { category: string; names: string[] }[] = [
     ],
   },
   {
-    category: "Природа",
+    category: "icon.cat.nature",
     names: [
       "Leaf",
       "Trees",
@@ -74,7 +76,7 @@ export const ICON_LIBRARY: { category: string; names: string[] }[] = [
     ],
   },
   {
-    category: "Символы",
+    category: "icon.cat.symbols",
     names: [
       "Shield",
       "ShieldCheck",
@@ -91,19 +93,19 @@ export const ICON_LIBRARY: { category: string; names: string[] }[] = [
     ],
   },
   {
-    category: "Транспорт",
+    category: "icon.cat.transport",
     names: ["Rocket", "Plane", "Car", "Bike", "Ship", "Train"],
   },
   {
-    category: "Музыка / Творчество",
+    category: "icon.cat.music",
     names: ["Music", "Music2", "Headphones", "Mic", "Palette", "Paintbrush", "Image", "Film"],
   },
   {
-    category: "Время",
+    category: "icon.cat.time",
     names: ["Clock", "Timer", "Calendar", "CalendarDays", "AlarmClock", "Hourglass"],
   },
   {
-    category: "Геометрия",
+    category: "icon.cat.geometry",
     names: ["Circle", "Square", "Triangle", "Hexagon", "Pentagon", "Octagon", "Diamond"],
   },
 ];

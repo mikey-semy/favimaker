@@ -7,6 +7,7 @@ import { useT } from "@/lib/i18n";
 import {
   POPULAR_FONTS,
   fetchAllFonts,
+  getCachedFonts,
   loadGoogleFont,
   type GoogleFont,
 } from "@/lib/google-fonts";
@@ -24,7 +25,8 @@ import { cn } from "@/lib/cn";
 export function FontPicker() {
   const { config, set } = useConfig();
   const t = useT();
-  const [allFonts, setAllFonts] = React.useState<GoogleFont[] | null>(null);
+  // Init из module-level cache — переживает unmount при смене вкладки Editor
+  const [allFonts, setAllFonts] = React.useState<GoogleFont[] | null>(() => getCachedFonts());
   const [loadingAll, setLoadingAll] = React.useState(false);
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
@@ -182,7 +184,7 @@ export function FontPicker() {
                 className="max-h-72 overflow-y-auto"
               >
                 {visibleFonts.length === 0 ? (
-                  <div className="p-3 text-xs text-muted text-center">Ничего не найдено</div>
+                  <div className="p-3 text-xs text-muted text-center">{t("msg.nothingFound")}</div>
                 ) : (
                   visibleFonts.map((f, idx) => {
                     const selected = f.family === config.fontFamily;
@@ -221,7 +223,9 @@ export function FontPicker() {
                 )}
                 {filtered.length > VISIBLE_LIMIT && (
                   <div className="p-2 text-[10px] text-muted text-center border-t border-line">
-                    Показано {VISIBLE_LIMIT} из {filtered.length} — уточните поиск
+                    {t("msg.fontsLimit")
+                      .replace("{visible}", String(VISIBLE_LIMIT))
+                      .replace("{total}", String(filtered.length))}
                   </div>
                 )}
               </div>
@@ -242,7 +246,7 @@ export function FontPicker() {
         </label>
         {!allFonts && (
           <Button variant="ghost" size="sm" onClick={onLoadAll} disabled={loadingAll}>
-            {loadingAll ? t("btn.loadingFonts") : "Все шрифты"}
+            {loadingAll ? t("btn.loadingFonts") : t("btn.loadAllFontsShort")}
           </Button>
         )}
       </FieldRow>

@@ -63,7 +63,32 @@ const dict = {
     ru: "Загрузить все ~1500 шрифтов Google Fonts",
     en: "Load all ~1500 Google Fonts",
   },
+  "btn.loadAllFontsShort": { ru: "Все шрифты", en: "All fonts" },
   "btn.loadingFonts": { ru: "Загружаю каталог…", en: "Loading catalog…" },
+  "btn.loadAllIcons": {
+    ru: "Показать все ~1500 иконок Lucide",
+    en: "Show all ~1500 Lucide icons",
+  },
+  "btn.curatedIcons": { ru: "Курируемый набор (быстро)", en: "Curated set (fast)" },
+  "btn.loadingIcons": { ru: "Загружаю каталог…", en: "Loading catalog…" },
+  "btn.showMore": { ru: "Показать ещё", en: "Show more" },
+  "msg.nothingFound": { ru: "Ничего не найдено", en: "Nothing found" },
+  "msg.fontsLimit": {
+    ru: "Показано {visible} из {total} — уточните поиск",
+    en: "Showing {visible} of {total} — refine search",
+  },
+
+  // icon categories
+  "icon.cat.popular": { ru: "Популярные", en: "Popular" },
+  "icon.cat.tech": { ru: "Технологии", en: "Tech" },
+  "icon.cat.communication": { ru: "Связь", en: "Communication" },
+  "icon.cat.objects": { ru: "Объекты", en: "Objects" },
+  "icon.cat.nature": { ru: "Природа", en: "Nature" },
+  "icon.cat.symbols": { ru: "Символы", en: "Symbols" },
+  "icon.cat.transport": { ru: "Транспорт", en: "Transport" },
+  "icon.cat.music": { ru: "Музыка / Творчество", en: "Music / Art" },
+  "icon.cat.time": { ru: "Время", en: "Time" },
+  "icon.cat.geometry": { ru: "Геометрия", en: "Geometry" },
   "btn.uploadImage": { ru: "Загрузить картинку", en: "Upload image" },
   "btn.dropImage": { ru: "Бросьте файл сюда или нажмите", en: "Drop file here or click" },
   "btn.removeImage": { ru: "Убрать картинку", en: "Remove image" },
@@ -75,6 +100,8 @@ const dict = {
     ru: "HTML-сниппет для <head>",
     en: "HTML snippet for <head>",
   },
+  "export.copySnippet": { ru: "Скопировать HTML-сниппет", en: "Copy HTML snippet" },
+  "export.copied": { ru: "Скопировано", en: "Copied" },
   "export.fileList": { ru: "В ZIP-архиве (14 файлов):", en: "In ZIP archive (14 files):" },
 
   // preview

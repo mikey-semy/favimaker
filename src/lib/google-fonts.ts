@@ -127,54 +127,87 @@ type CacheEntry = {
   fonts: GoogleFont[];
 };
 
-/** Скачать полный каталог Google Fonts (~1500 шт.) через Fontsource API. */
+// Module-level memory cache — переживает unmount/remount компонента
+// (юзер переключился между табами Editor и вернулся — данные не теряются).
+let memoryCache: GoogleFont[] | null = null;
+// Shared promise чтобы одновременные вызовы не делали параллельных fetch.
+let inFlight: Promise<GoogleFont[]> | null = null;
+
+/** Синхронный доступ к кэшу (для useState initial value). */
+export function getCachedFonts(): GoogleFont[] | null {
+  if (memoryCache) return memoryCache;
+  if (typeof window === "undefined") return null;
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const entry = JSON.parse(cached) as CacheEntry;
+      if (Date.now() - entry.timestamp < CACHE_TTL_MS) {
+        memoryCache = entry.fonts;
+        return entry.fonts;
+      }
+    }
+  } catch {
+    // невалидный кэш
+  }
+  return null;
+}
+
+/** Скачать полный каталог Google Fonts (~1500 шт.) через Fontsource API.
+ *  Дедуплицирует одновременные вызовы через shared promise. */
 export async function fetchAllFonts(): Promise<GoogleFont[]> {
-  // Проверка кэша
-  if (typeof window !== "undefined") {
+  const cached = getCachedFonts();
+  if (cached) return cached;
+  if (inFlight) return inFlight;
+
+  inFlight = (async () => {
     try {
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const entry = JSON.parse(cached) as CacheEntry;
-        if (Date.now() - entry.timestamp < CACHE_TTL_MS) {
-          return entry.fonts;
+      // Таймаут чтобы не висеть бесконечно при медленной сети
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30_000);
+      let res: Response;
+      try {
+        res = await fetch("https://api.fontsource.org/v1/fonts?type=google", {
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+      if (!res.ok) throw new Error(`Fontsource API: ${res.status}`);
+      const raw = (await res.json()) as Array<{
+        family: string;
+        category: string;
+        weights: number[];
+        subsets: string[];
+      }>;
+
+      const fonts: GoogleFont[] = raw.map((f) => ({
+        family: f.family,
+        category: (["sans-serif", "serif", "display", "monospace", "handwriting"].includes(
+          f.category,
+        )
+          ? f.category
+          : "sans-serif") as GoogleFont["category"],
+        weights: f.weights.length > 0 ? f.weights : [400],
+        cyrillic: f.subsets.includes("cyrillic"),
+      }));
+
+      memoryCache = fonts;
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(
+            CACHE_KEY,
+            JSON.stringify({ timestamp: Date.now(), fonts } satisfies CacheEntry),
+          );
+        } catch {
+          // localStorage может быть полным — игнорируем
         }
       }
-    } catch {
-      // невалидный кэш — продолжаем фетч
+      return fonts;
+    } finally {
+      inFlight = null;
     }
-  }
-
-  const res = await fetch("https://api.fontsource.org/v1/fonts?type=google");
-  if (!res.ok) throw new Error(`Fontsource API: ${res.status}`);
-  const raw = (await res.json()) as Array<{
-    family: string;
-    category: string;
-    weights: number[];
-    subsets: string[];
-  }>;
-
-  const fonts: GoogleFont[] = raw.map((f) => ({
-    family: f.family,
-    category: (["sans-serif", "serif", "display", "monospace", "handwriting"].includes(f.category)
-      ? f.category
-      : "sans-serif") as GoogleFont["category"],
-    weights: f.weights.length > 0 ? f.weights : [400],
-    cyrillic: f.subsets.includes("cyrillic"),
-  }));
-
-  // Сохраняем в кэш
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem(
-        CACHE_KEY,
-        JSON.stringify({ timestamp: Date.now(), fonts } satisfies CacheEntry),
-      );
-    } catch {
-      // localStorage может быть полным — игнорируем
-    }
-  }
-
-  return fonts;
+  })();
+  return inFlight;
 }
 
 /** Динамически добавить <link> на Google Fonts CSS для выбранного шрифта. */

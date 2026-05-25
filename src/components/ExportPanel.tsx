@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Download, Loader2 } from "lucide-react";
+import { Check, Copy, Download, Loader2 } from "lucide-react";
 import { useConfig } from "@/lib/store";
 import { buildFaviconZip, downloadBlob } from "@/lib/export";
 import { buildHtmlSnippet } from "@/lib/manifest";
@@ -13,6 +13,7 @@ export function ExportPanel() {
   const t = useT();
   const [appName, setAppName] = React.useState("Site");
   const [busy, setBusy] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
 
   const handleDownload = async () => {
     setBusy(true);
@@ -21,6 +22,24 @@ export function ExportPanel() {
       downloadBlob(blob, `favicon-${(appName || "site").toLowerCase()}.zip`);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleCopySnippet = async () => {
+    try {
+      await navigator.clipboard.writeText(buildHtmlSnippet());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // фолбэк для старых браузеров без clipboard API
+      const ta = document.createElement("textarea");
+      ta.value = buildHtmlSnippet();
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
     }
   };
 
@@ -50,18 +69,19 @@ export function ExportPanel() {
         )}
       </Button>
 
-      <details className="group bg-surface-2 rounded-[var(--r-md)] border border-line">
-        <summary
-          className="cursor-pointer list-none px-3 py-2 text-xs font-medium text-ink-2 hover:text-ink flex items-center gap-2"
-          suppressHydrationWarning
-        >
-          <span className="text-muted transition-transform group-open:rotate-90">▸</span>
-          {t("export.snippetTitle")}
-        </summary>
-        <pre className="p-3 pt-0 text-[11px] font-mono text-ink-2 overflow-x-auto whitespace-pre-wrap break-all">
-          {buildHtmlSnippet()}
-        </pre>
-      </details>
+      <Button variant="secondary" size="md" onClick={handleCopySnippet} className="w-full">
+        {copied ? (
+          <>
+            <Check className="size-4 text-green-500" />
+            <span suppressHydrationWarning>{t("export.copied")}</span>
+          </>
+        ) : (
+          <>
+            <Copy className="size-4" />
+            <span suppressHydrationWarning>{t("export.copySnippet")}</span>
+          </>
+        )}
+      </Button>
 
       <div className="text-[11px] text-muted leading-relaxed" suppressHydrationWarning>
         {t("export.fileList")}
