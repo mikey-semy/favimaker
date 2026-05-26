@@ -27,6 +27,7 @@ const GROUP_ORDER: (keyof ExportInclude)[] = [
   "ico",
   "pngBrowser",
   "apple",
+  "appleVariants",
   "android",
   "maskable",
   "mstile",
@@ -110,6 +111,7 @@ export function ExportPanel() {
       ico: include.ico,
       pngBrowser: include.pngBrowser,
       apple: include.apple,
+      appleVariants: include.appleVariants,
       manifest: include.manifest,
       browserconfig: include.browserconfig,
     });

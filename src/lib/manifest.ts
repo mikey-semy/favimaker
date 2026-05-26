@@ -85,6 +85,9 @@ export type SnippetInclude = {
   ico?: boolean;
   pngBrowser?: boolean;
   apple?: boolean;
+  /** Apple touch icon доп. размеры (120/152/167). Opt-in: проверяется === true,
+   *  а не по дефолту через flag(). */
+  appleVariants?: boolean;
   manifest?: boolean;
   browserconfig?: boolean;
 };
@@ -103,6 +106,13 @@ export function buildHtmlSnippet(include: SnippetInclude = {}): string {
     lines.push(`<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">`);
   }
   if (flag("apple")) lines.push(`<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">`);
+  // appleVariants — opt-in, проверяем явно === true (не через flag()):
+  // в DEFAULT_INCLUDE он false, никаких неожиданных эмиссий когда {} default.
+  if (include.appleVariants === true) {
+    lines.push(`<link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon-120x120.png">`);
+    lines.push(`<link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png">`);
+    lines.push(`<link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167x167.png">`);
+  }
   if (flag("safariPinnedTab")) {
     const color = include.safariPinnedTabColor ?? "#000000";
     lines.push(`<link rel="mask-icon" href="/safari-pinned-tab.svg" color="${color}">`);
