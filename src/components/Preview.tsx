@@ -1,10 +1,13 @@
 "use client";
 
 import * as React from "react";
+import { ImagePlus } from "lucide-react";
 import { useConfig } from "@/lib/store";
 import { renderToCanvas } from "@/lib/renderer";
 import { loadGoogleFont, waitForFont, POPULAR_FONTS } from "@/lib/google-fonts";
 import { useT } from "@/lib/i18n";
+import { readImageAsDataUrl } from "@/lib/image-load";
+import { toast } from "@/lib/toast";
 
 const SIZE_LIST = [16, 32, 64] as const;
 
@@ -87,6 +90,44 @@ function PreviewCanvasResponsive({ maxPx = 200 }: { maxPx?: number }) {
  */
 export function Preview() {
   const t = useT();
+  const set = useConfig((s) => s.set);
+  // Drag&drop over большое превью — альтернатива DropZone'у на тех же
+  // событиях. На dragenter→true, leave/drop→false. counter защищает от
+  // ложных leave'ов когда курсор уходит на дочерние элементы.
+  const [dragging, setDragging] = React.useState(false);
+  const dragCounter = React.useRef(0);
+
+  const onDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    // Реагируем только на файлы — игнорим перетаскивание текста и пр.
+    if (!Array.from(e.dataTransfer.types).includes("Files")) return;
+    dragCounter.current++;
+    setDragging(true);
+  };
+  const onDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current = Math.max(0, dragCounter.current - 1);
+    if (dragCounter.current === 0) setDragging(false);
+  };
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+  const onDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current = 0;
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    const result = await readImageAsDataUrl(file);
+    if (!result.ok) {
+      toast.error(t("preview.dropNotImage"));
+      return;
+    }
+    set("imageDataUrl", result.dataUrl);
+    set("source", "image");
+    toast.success(t("preview.dropLoaded"));
+  };
+
   return (
     <div className="space-y-3">
       {/* Топ: большое превью + 3 размера + 2 темы */}
@@ -94,8 +135,31 @@ export function Preview() {
         {/* Большое (200px) на checker — слева. Никакой обёртки между checker
             и canvas, иначе прозрачные части иконки показывают обёртку, а не
             checker (выглядит как «не прозрачный»). */}
-        <div className="checker rounded-[var(--r-lg)] p-6 flex items-center justify-center">
+        <div
+          onDragEnter={onDragEnter}
+          onDragLeave={onDragLeave}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          className={
+            "relative checker rounded-[var(--r-lg)] p-6 flex items-center justify-center transition-all " +
+            (dragging ? "ring-2 ring-accent ring-offset-2 ring-offset-background" : "")
+          }
+        >
           <PreviewCanvasResponsive maxPx={180} />
+          {dragging && (
+            <div
+              className="absolute inset-0 rounded-[var(--r-lg)] bg-accent/20 backdrop-blur-sm flex flex-col items-center justify-center gap-2 pointer-events-none"
+              aria-hidden
+            >
+              <ImagePlus className="size-8 text-accent" />
+              <p
+                className="text-xs font-medium text-accent text-center px-4"
+                suppressHydrationWarning
+              >
+                {t("preview.dropHere")}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Правая часть: размеры + темы */}

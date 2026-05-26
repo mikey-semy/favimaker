@@ -162,6 +162,15 @@ const dict = {
   "preview.realSizes": { ru: "Реальные размеры", en: "Real sizes" },
   "preview.inBrowser": { ru: "В браузере", en: "In browser" },
   "preview.onThemes": { ru: "На светлом и тёмном фоне", en: "On light & dark" },
+  "preview.dropHere": {
+    ru: "Бросьте картинку — заменит источник",
+    en: "Drop an image — replaces source",
+  },
+  "preview.dropLoaded": { ru: "Картинка загружена", en: "Image loaded" },
+  "preview.dropNotImage": {
+    ru: "Это не картинка",
+    en: "Not an image file",
+  },
 
   // fonts
   "fonts.cyrillicOnly": { ru: "Только кириллица", en: "Cyrillic only" },
