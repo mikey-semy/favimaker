@@ -101,3 +101,5 @@
 - [x] VOID-26 — Rename history entries (inline) · merged 2026-05-26 · #13
 - [x] VOID-27 — Import/export history JSON · merged 2026-05-26 · #14
 - [x] VOID-13 — Apple touch icon variants (120/152/167) · merged 2026-05-26 · #15
+- [x] VOID-31 — favimaker as PWA (manifest + SW + install) · merged 2026-05-26 · #17
+- [x] VOID-30 — React/Vue inline-SVG components · merged 2026-05-26 · #18
