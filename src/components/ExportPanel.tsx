@@ -6,10 +6,12 @@ import { useConfig } from "@/lib/store";
 import { buildFaviconZip, downloadBlob } from "@/lib/export";
 import { buildHtmlSnippet } from "@/lib/manifest";
 import { useLocale, useT } from "@/lib/i18n";
+import { buildThumb, useHistory } from "@/lib/history";
 import { Button, TextInput } from "./inputs";
 
 export function ExportPanel() {
   const config = useConfig((s) => s.config);
+  const addToHistory = useHistory((s) => s.add);
   const t = useT();
   const locale = useLocale((s) => s.locale);
   const [appName, setAppName] = React.useState("Site");
@@ -21,6 +23,14 @@ export function ExportPanel() {
     try {
       const blob = await buildFaviconZip(config, appName, locale);
       downloadBlob(blob, `favicon-${(appName || "site").toLowerCase()}.zip`);
+      // Сохраняем в локальную историю — миниатюра + полный конфиг для restore.
+      // Ошибка в thumb не должна ломать скачивание, поэтому отдельный try.
+      try {
+        const thumbDataUrl = await buildThumb(config);
+        addToHistory({ appName: appName || "Site", config, thumbDataUrl });
+      } catch {
+        // история — best-effort, не критично
+      }
     } finally {
       setBusy(false);
     }

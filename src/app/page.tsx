@@ -5,6 +5,7 @@ import { Github } from "lucide-react";
 import { Editor } from "@/components/Editor";
 import { Preview } from "@/components/Preview";
 import { ExportPanel } from "@/components/ExportPanel";
+import { HistoryPanel } from "@/components/HistoryPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LangToggle } from "@/components/LangToggle";
 import { useConfig } from "@/lib/store";
@@ -75,11 +76,19 @@ export default function HomePage() {
             <Preview />
           </section>
 
-          <aside className="bg-surface rounded-[var(--r-lg)] border border-line p-4 h-fit lg:sticky lg:top-4">
-            <h2 className="text-sm font-semibold mb-3" suppressHydrationWarning>
-              {t("section.export")}
-            </h2>
-            <ExportPanel />
+          <aside className="space-y-3 h-fit lg:sticky lg:top-4">
+            <div className="bg-surface rounded-[var(--r-lg)] border border-line p-4">
+              <h2 className="text-sm font-semibold mb-3" suppressHydrationWarning>
+                {t("section.export")}
+              </h2>
+              <ExportPanel />
+            </div>
+            <div className="bg-surface rounded-[var(--r-lg)] border border-line p-4">
+              <h2 className="text-sm font-semibold mb-3" suppressHydrationWarning>
+                {t("section.history")}
+              </h2>
+              <HistoryPanel />
+            </div>
           </aside>
         </div>
       </div>

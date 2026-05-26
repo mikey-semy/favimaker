@@ -133,6 +133,25 @@ const dict = {
     en: "Failed to copy link",
   },
 
+  // history
+  "section.history": { ru: "История", en: "History" },
+  "history.empty": {
+    ru: "Здесь появятся иконки, которые вы скачали",
+    en: "Icons you download will appear here",
+  },
+  "history.restore": { ru: "Применить", en: "Apply" },
+  "history.download": { ru: "Скачать снова", en: "Download again" },
+  "history.delete": { ru: "Удалить", en: "Delete" },
+  "history.clearAll": { ru: "Очистить", en: "Clear" },
+  "history.confirmClear": {
+    ru: "Удалить всю историю?",
+    en: "Clear all history?",
+  },
+  "history.justNow": { ru: "только что", en: "just now" },
+  "history.minutesAgo": { ru: "{n} мин назад", en: "{n} min ago" },
+  "history.hoursAgo": { ru: "{n} ч назад", en: "{n} h ago" },
+  "history.daysAgo": { ru: "{n} д назад", en: "{n} d ago" },
+
   // footer
   "footer.builtWith": { ru: "Open source · MIT · собрано с", en: "Open source · MIT · built with" },
   "footer.fontsBy": { ru: "Шрифты:", en: "Fonts:" },
