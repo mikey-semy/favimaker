@@ -137,6 +137,22 @@ const dict = {
     ru: "Скопировать как app/apple-icon.tsx (180×180 для iOS)",
     en: "Copy as app/apple-icon.tsx (180×180 for iOS)",
   },
+  "export.copyReactComponentHint": {
+    ru: "React-компонент с inline-SVG и size-prop",
+    en: "React component with inline SVG and size prop",
+  },
+  "export.copyVueComponentHint": {
+    ru: "Vue 3 SFC с inline-SVG и size-prop",
+    en: "Vue 3 SFC with inline SVG and size prop",
+  },
+  "export.svgComponentUnavailable": {
+    ru: "SVG-компонент не генерируется для источника «Картинка»",
+    en: "SVG component not generated for image source",
+  },
+  "export.codegenFailed": {
+    ru: "Не удалось сгенерировать код",
+    en: "Failed to generate code",
+  },
   "inc.svg": { ru: "favicon.svg (vector)", en: "favicon.svg (vector)" },
   "inc.safariPinnedTab": {
     ru: "safari-pinned-tab.svg",
