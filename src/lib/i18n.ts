@@ -164,6 +164,8 @@ const dict = {
   },
   "history.restore": { ru: "Применить", en: "Apply" },
   "history.download": { ru: "Скачать снова", en: "Download again" },
+  "history.pin": { ru: "Закрепить (не выкинется лимитом)", en: "Pin (kept past the limit)" },
+  "history.unpin": { ru: "Открепить", en: "Unpin" },
   "history.delete": { ru: "Удалить", en: "Delete" },
   "history.clearAll": { ru: "Очистить", en: "Clear" },
   "history.confirmClear": {
