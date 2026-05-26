@@ -173,6 +173,16 @@ const dict = {
     en: "Contrast {ratio}:1 — too low, icon hard to read (need ≥4.5)",
   },
 
+  // color input
+  "color.eyedropper": {
+    ru: "Пипетка — взять цвет с экрана",
+    en: "Eyedropper — pick a color from screen",
+  },
+  "color.eyedropperFailed": {
+    ru: "Не удалось взять цвет",
+    en: "Failed to pick color",
+  },
+
   // misc
   "msg.shareCopied": { ru: "Ссылка скопирована", en: "Link copied" },
   "msg.shareFallback": {
