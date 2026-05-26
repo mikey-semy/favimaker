@@ -6,9 +6,8 @@ import { useConfigHistory } from "@/lib/config-history";
 import { useT } from "@/lib/i18n";
 
 /**
- * Кнопки undo/redo + глобальный keyboard-хендлер (Ctrl/Cmd+Z, +Shift).
- * Хоткеи игнорируются когда фокус внутри input/textarea/contenteditable —
- * иначе ломаем нативный undo в инпутах.
+ * Кнопки undo/redo. Keyboard-хоткеи (Ctrl/Cmd+Z, +Shift) обрабатываются
+ * глобально в <GlobalShortcuts /> — здесь только UI.
  */
 export function UndoRedo() {
   const past = useConfigHistory((s) => s.past);
@@ -19,21 +18,6 @@ export function UndoRedo() {
 
   const canUndo = past.length > 0;
   const canRedo = future.length > 0;
-
-  React.useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.closest("input, textarea, [contenteditable='true']")) return;
-      const cmdKey = e.ctrlKey || e.metaKey;
-      if (!cmdKey) return;
-      if (e.key.toLowerCase() !== "z") return;
-      e.preventDefault();
-      if (e.shiftKey) redo();
-      else undo();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [undo, redo]);
 
   return (
     <div className="flex items-center gap-0.5">

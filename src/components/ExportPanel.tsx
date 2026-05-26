@@ -17,6 +17,7 @@ import {
 } from "@/lib/code-snippets";
 import { useLocale, useT } from "@/lib/i18n";
 import { buildThumb, useHistory } from "@/lib/history";
+import { onShortcut } from "@/lib/shortcuts";
 import { toast } from "@/lib/toast";
 import { Button, Checkbox, TextInput } from "./inputs";
 
@@ -72,7 +73,7 @@ export function ExportPanel() {
     : TOTAL_FILES;
   const noneSelected = selectedCount === 0;
 
-  const handleDownload = async () => {
+  const handleDownload = React.useCallback(async () => {
     if (noneSelected) {
       toast.error(t("export.noneSelected"));
       return;
@@ -90,7 +91,14 @@ export function ExportPanel() {
     } finally {
       setBusy(false);
     }
-  };
+  }, [noneSelected, t, config, appName, locale, include, addToHistory]);
+
+  // Подписка на Ctrl/Cmd+S из GlobalShortcuts — single source для скачивания.
+  React.useEffect(() => {
+    return onShortcut("download", () => {
+      handleDownload();
+    });
+  }, [handleDownload]);
 
   const handleCopySnippet = async () => {
     // Сниппет должен ссылаться только на файлы которые юзер реально включит
