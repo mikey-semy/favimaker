@@ -12,7 +12,13 @@ function applyShapeClip(ctx: CanvasRenderingContext2D, size: number, config: Fav
     ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
   } else if (config.shape === "rounded") {
     const r = (config.borderRadiusPct / 100) * (size / 2);
-    roundRect(ctx, 0, 0, size, size, r);
+    // При r=0 квадратичные кривые в roundRect рендерятся с антиалиасингом
+    // и создают «псевдо-скругление». Падаем на обычный rect.
+    if (r > 0) {
+      roundRect(ctx, 0, 0, size, size, r);
+    } else {
+      ctx.rect(0, 0, size, size);
+    }
   } else {
     ctx.rect(0, 0, size, size);
   }
@@ -149,7 +155,11 @@ function drawBorder(ctx: CanvasRenderingContext2D, size: number, config: Favicon
     ctx.arc(size / 2, size / 2, size / 2 - w / 2, 0, Math.PI * 2);
   } else if (config.shape === "rounded") {
     const r = (config.borderRadiusPct / 100) * (size / 2) - w / 2;
-    roundRect(ctx, w / 2, w / 2, size - w, size - w, Math.max(0, r));
+    if (r > 0) {
+      roundRect(ctx, w / 2, w / 2, size - w, size - w, r);
+    } else {
+      ctx.rect(w / 2, w / 2, size - w, size - w);
+    }
   } else {
     ctx.rect(w / 2, w / 2, size - w, size - w);
   }
