@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { LangToggle } from "@/components/LangToggle";
 import { UndoRedo } from "@/components/UndoRedo";
 import { GlobalShortcuts } from "@/components/GlobalShortcuts";
+import { InstallButton } from "@/components/InstallButton";
 import { useConfig } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 
@@ -51,6 +52,7 @@ export default function HomePage() {
           <div className="flex items-center gap-1">
             <UndoRedo />
             <div className="w-px h-5 bg-line mx-1" aria-hidden />
+            <InstallButton />
             <LangToggle />
             <ThemeToggle />
             <a

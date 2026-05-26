@@ -220,6 +220,12 @@ const dict = {
     en: "Failed to pick color",
   },
 
+  // PWA
+  "pwa.install": {
+    ru: "Установить favimaker как приложение",
+    en: "Install favimaker as an app",
+  },
+
   // misc
   "msg.shareCopied": { ru: "Ссылка скопирована", en: "Link copied" },
   "msg.shareFallback": {
