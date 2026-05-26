@@ -9,6 +9,7 @@ import { HistoryPanel } from "@/components/HistoryPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LangToggle } from "@/components/LangToggle";
 import { UndoRedo } from "@/components/UndoRedo";
+import { GlobalShortcuts } from "@/components/GlobalShortcuts";
 import { useConfig } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 
@@ -33,6 +34,7 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen flex flex-col">
+      <GlobalShortcuts />
       <header className="border-b border-line">
         <div className="mx-auto max-w-[1600px] px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

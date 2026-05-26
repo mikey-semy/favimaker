@@ -59,6 +59,18 @@ const dict = {
   "btn.share": { ru: "Поделиться", en: "Share" },
   "btn.undo": { ru: "Отменить (Ctrl+Z)", en: "Undo (Ctrl+Z)" },
   "btn.redo": { ru: "Повторить (Ctrl+Shift+Z)", en: "Redo (Ctrl+Shift+Z)" },
+
+  // keyboard shortcuts
+  "shortcut.undo": { ru: "Отменить", en: "Undo" },
+  "shortcut.redo": { ru: "Повторить", en: "Redo" },
+  "shortcut.download": { ru: "Скачать ZIP", en: "Download ZIP" },
+  "shortcut.help": { ru: "Показать это окно", en: "Show this dialog" },
+  "shortcut.helpTitle": { ru: "Клавиатурные сокращения", en: "Keyboard shortcuts" },
+  "shortcut.helpFooter": {
+    ru: "Хоткеи работают везде кроме инпутов и текстовых полей.",
+    en: "Hotkeys work everywhere except inputs and text fields.",
+  },
+  "shortcut.helpClose": { ru: "Закрыть", en: "Close" },
   "btn.download": { ru: "Скачать ZIP", en: "Download ZIP" },
   "btn.preparingZip": { ru: "Готовлю архив…", en: "Building archive…" },
   "btn.loadAllFonts": {
