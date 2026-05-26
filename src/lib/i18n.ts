@@ -57,6 +57,8 @@ const dict = {
   // buttons
   "btn.reset": { ru: "Сброс", en: "Reset" },
   "btn.share": { ru: "Поделиться", en: "Share" },
+  "btn.undo": { ru: "Отменить (Ctrl+Z)", en: "Undo (Ctrl+Z)" },
+  "btn.redo": { ru: "Повторить (Ctrl+Shift+Z)", en: "Redo (Ctrl+Shift+Z)" },
   "btn.download": { ru: "Скачать ZIP", en: "Download ZIP" },
   "btn.preparingZip": { ru: "Готовлю архив…", en: "Building archive…" },
   "btn.loadAllFonts": {
