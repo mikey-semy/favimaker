@@ -57,6 +57,8 @@ const dict = {
   // buttons
   "btn.reset": { ru: "Сброс", en: "Reset" },
   "btn.share": { ru: "Поделиться", en: "Share" },
+  "btn.undo": { ru: "Отменить (Ctrl+Z)", en: "Undo (Ctrl+Z)" },
+  "btn.redo": { ru: "Повторить (Ctrl+Shift+Z)", en: "Redo (Ctrl+Shift+Z)" },
   "btn.download": { ru: "Скачать ZIP", en: "Download ZIP" },
   "btn.preparingZip": { ru: "Готовлю архив…", en: "Building archive…" },
   "btn.loadAllFonts": {
@@ -112,6 +114,10 @@ const dict = {
     en: "Select at least one file",
   },
   "inc.svg": { ru: "favicon.svg (vector)", en: "favicon.svg (vector)" },
+  "inc.safariPinnedTab": {
+    ru: "safari-pinned-tab.svg",
+    en: "safari-pinned-tab.svg",
+  },
   "inc.svgUnavailable": {
     ru: "SVG не генерируется для источника «Картинка»",
     en: "SVG is not generated for image source",
@@ -148,6 +154,24 @@ const dict = {
   "grad.t": { ru: "↑ вверх", en: "↑ up" },
   "grad.l": { ru: "← влево", en: "← left" },
   "grad.radial": { ru: "⊙ радиальный", en: "⊙ radial" },
+
+  // WCAG contrast badge
+  "contrast.aaa": {
+    ru: "Контраст {ratio}:1 — AAA, отличная читаемость",
+    en: "Contrast {ratio}:1 — AAA, excellent readability",
+  },
+  "contrast.aa": {
+    ru: "Контраст {ratio}:1 — AA, нормальная читаемость",
+    en: "Contrast {ratio}:1 — AA, good readability",
+  },
+  "contrast.aaLarge": {
+    ru: "Контраст {ratio}:1 — слабовато, для favicon желательно ≥4.5",
+    en: "Contrast {ratio}:1 — borderline, ≥4.5 recommended for favicons",
+  },
+  "contrast.fail": {
+    ru: "Контраст {ratio}:1 — низкий, иконка плохо читаема (нужно ≥4.5)",
+    en: "Contrast {ratio}:1 — too low, icon hard to read (need ≥4.5)",
+  },
 
   // color input
   "color.eyedropper": {

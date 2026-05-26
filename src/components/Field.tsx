@@ -7,7 +7,8 @@ export function Field({
   className,
 }: {
   label: string;
-  hint?: string;
+  /** Может быть строкой (раньше — счётчик типа «60%») или React-узлом (badge). */
+  hint?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -15,7 +16,13 @@ export function Field({
     <label className={cn("block space-y-1.5", className)}>
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-[11px] font-medium uppercase tracking-wider text-muted">{label}</span>
-        {hint && <span className="text-[11px] text-muted font-mono tabular-nums">{hint}</span>}
+        {hint !== undefined && hint !== null && hint !== "" && (
+          typeof hint === "string" ? (
+            <span className="text-[11px] text-muted font-mono tabular-nums">{hint}</span>
+          ) : (
+            hint
+          )
+        )}
       </div>
       {children}
     </label>
