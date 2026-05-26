@@ -113,6 +113,18 @@ const dict = {
     ru: "Выберите хотя бы один файл",
     en: "Select at least one file",
   },
+  "export.frameworkCode": {
+    ru: "Код для фреймворков",
+    en: "Framework code",
+  },
+  "export.copyNextIconHint": {
+    ru: "Скопировать как app/icon.tsx (Next.js 13+ build-time favicon, 32×32)",
+    en: "Copy as app/icon.tsx (Next.js 13+ build-time favicon, 32×32)",
+  },
+  "export.copyNextAppleIconHint": {
+    ru: "Скопировать как app/apple-icon.tsx (180×180 для iOS)",
+    en: "Copy as app/apple-icon.tsx (180×180 for iOS)",
+  },
   "inc.svg": { ru: "favicon.svg (vector)", en: "favicon.svg (vector)" },
   "inc.safariPinnedTab": {
     ru: "safari-pinned-tab.svg",
