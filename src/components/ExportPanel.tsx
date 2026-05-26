@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronDown, Copy, Download, Loader2 } from "lucide-react";
+import { Check, ChevronDown, Code, Copy, Download, Loader2 } from "lucide-react";
 import { useConfig } from "@/lib/store";
 import {
   buildFaviconZip,
@@ -11,6 +11,10 @@ import {
 } from "@/lib/export";
 import { useExportInclude } from "@/lib/export-include";
 import { buildHtmlSnippet } from "@/lib/manifest";
+import {
+  buildNextJsAppleIconSnippet,
+  buildNextJsIconSnippet,
+} from "@/lib/code-snippets";
 import { useLocale, useT } from "@/lib/i18n";
 import { buildThumb, useHistory } from "@/lib/history";
 import { toast } from "@/lib/toast";
@@ -222,6 +226,81 @@ export function ExportPanel() {
           </>
         )}
       </Button>
+
+      {/* Framework-specific snippets — для интеграций (Next.js, далее
+          можно добавить Astro/Nuxt/etc). */}
+      <div className="pt-2 border-t border-line">
+        <p
+          className="text-[10px] uppercase tracking-wider text-muted mb-2"
+          suppressHydrationWarning
+        >
+          {t("export.frameworkCode")}
+        </p>
+        <div className="space-y-1.5">
+          <CopyCodeButton
+            label="app/icon.tsx"
+            getCode={() => buildNextJsIconSnippet(config)}
+            tooltip={t("export.copyNextIconHint")}
+          />
+          <CopyCodeButton
+            label="app/apple-icon.tsx"
+            getCode={() => buildNextJsAppleIconSnippet(config)}
+            tooltip={t("export.copyNextAppleIconHint")}
+          />
+        </div>
+      </div>
     </div>
+  );
+}
+
+function CopyCodeButton({
+  label,
+  getCode,
+  tooltip,
+}: {
+  label: string;
+  getCode: () => string;
+  tooltip: string;
+}) {
+  const t = useT();
+  const [copied, setCopied] = React.useState(false);
+
+  const onClick = async () => {
+    const code = getCode();
+    try {
+      await navigator.clipboard.writeText(code);
+    } catch {
+      // фолбэк для старых браузеров
+      const ta = document.createElement("textarea");
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={tooltip}
+      className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-[var(--r-sm)] bg-surface-2 border border-line text-ink-2 hover:text-ink hover:border-accent/40 transition-colors cursor-pointer text-xs font-mono"
+    >
+      <span className="flex items-center gap-2 min-w-0 truncate">
+        <Code className="size-3.5 shrink-0" />
+        <span className="truncate">{label}</span>
+      </span>
+      {copied ? (
+        <Check className="size-3.5 text-green-500 shrink-0" />
+      ) : (
+        <Copy className="size-3.5 shrink-0" />
+      )}
+      <span className="sr-only" suppressHydrationWarning>
+        {copied ? t("export.copied") : t("export.copySnippet")}
+      </span>
+    </button>
   );
 }
