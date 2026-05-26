@@ -197,6 +197,46 @@ export function SegmentedControl<T extends string>({
   );
 }
 
+export function Checkbox({
+  checked,
+  onChange,
+  label,
+  meta,
+  className,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: React.ReactNode;
+  meta?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <label
+      className={cn(
+        "flex items-center gap-2 cursor-pointer text-xs text-ink-2 hover:text-ink py-1 group select-none",
+        className,
+      )}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className={cn(
+          "appearance-none size-3.5 shrink-0 rounded-[3px] border border-line bg-surface-2 cursor-pointer transition-colors",
+          "checked:bg-accent checked:border-accent",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30",
+          // галочка через CSS
+          "relative checked:after:content-[''] checked:after:absolute checked:after:left-[3px] checked:after:top-[0px]",
+          "checked:after:w-[4px] checked:after:h-[8px] checked:after:border-[var(--accent-ink)]",
+          "checked:after:border-r-2 checked:after:border-b-2 checked:after:rotate-45",
+        )}
+      />
+      <span className="flex-1 min-w-0 truncate">{label}</span>
+      {meta && <span className="text-[10px] text-muted font-mono tabular-nums">{meta}</span>}
+    </label>
+  );
+}
+
 export function Button({
   variant = "primary",
   size = "md",

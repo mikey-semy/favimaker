@@ -5,7 +5,9 @@ import { Download, RotateCcw, Trash2 } from "lucide-react";
 import { useConfig } from "@/lib/store";
 import { useHistory, type HistoryEntry } from "@/lib/history";
 import { buildFaviconZip, downloadBlob } from "@/lib/export";
+import { useExportInclude } from "@/lib/export-include";
 import { useLocale, useT } from "@/lib/i18n";
+import { toast } from "@/lib/toast";
 import { Button } from "./inputs";
 
 export function HistoryPanel() {
@@ -14,23 +16,42 @@ export function HistoryPanel() {
   const remove = useHistory((s) => s.remove);
   const clear = useHistory((s) => s.clear);
   const replace = useConfig((s) => s.replace);
+  const include = useExportInclude((s) => s.include);
   const locale = useLocale((s) => s.locale);
   const t = useT();
+  // Two-step подтверждение: первый клик переводит кнопку в «armed»-состояние,
+  // второй — подтверждает. Авто-сброс через 3с если юзер передумал. Это
+  // заменяет нативный confirm — он блокирует UI и выглядит чужеродно.
+  const [confirmArmed, setConfirmArmed] = React.useState(false);
+  const armTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleRestore = (entry: HistoryEntry) => {
     replace(entry.config);
   };
 
   const handleRedownload = async (entry: HistoryEntry) => {
-    const blob = await buildFaviconZip(entry.config, entry.appName, locale);
+    const blob = await buildFaviconZip(entry.config, entry.appName, locale, include);
     downloadBlob(blob, `favicon-${(entry.appName || "site").toLowerCase()}.zip`);
   };
 
   const handleClear = () => {
-    if (window.confirm(t("history.confirmClear"))) {
-      clear();
+    if (!confirmArmed) {
+      setConfirmArmed(true);
+      if (armTimerRef.current) clearTimeout(armTimerRef.current);
+      armTimerRef.current = setTimeout(() => setConfirmArmed(false), 3000);
+      return;
     }
+    if (armTimerRef.current) clearTimeout(armTimerRef.current);
+    setConfirmArmed(false);
+    clear();
+    toast.success(t("history.clearedToast"));
   };
+
+  React.useEffect(() => {
+    return () => {
+      if (armTimerRef.current) clearTimeout(armTimerRef.current);
+    };
+  }, []);
 
   if (!hydrated) {
     return (
@@ -62,9 +83,19 @@ export function HistoryPanel() {
         ))}
       </ul>
 
-      <Button variant="ghost" size="sm" onClick={handleClear} className="w-full">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleClear}
+        className={
+          "w-full " +
+          (confirmArmed ? "text-red-500 hover:text-red-500 hover:bg-red-500/10" : "")
+        }
+      >
         <Trash2 className="size-3.5" />
-        <span suppressHydrationWarning>{t("history.clearAll")}</span>
+        <span suppressHydrationWarning>
+          {confirmArmed ? t("history.confirmClear") : t("history.clearAll")}
+        </span>
       </Button>
     </div>
   );

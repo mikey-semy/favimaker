@@ -1,35 +1,70 @@
 "use client";
 
 import * as React from "react";
-import { Check, Copy, Download, Loader2 } from "lucide-react";
+import { Check, ChevronDown, Copy, Download, Loader2 } from "lucide-react";
 import { useConfig } from "@/lib/store";
-import { buildFaviconZip, downloadBlob } from "@/lib/export";
+import {
+  buildFaviconZip,
+  downloadBlob,
+  INCLUDE_FILE_COUNTS,
+  type ExportInclude,
+} from "@/lib/export";
+import { useExportInclude } from "@/lib/export-include";
 import { buildHtmlSnippet } from "@/lib/manifest";
 import { useLocale, useT } from "@/lib/i18n";
 import { buildThumb, useHistory } from "@/lib/history";
-import { Button, TextInput } from "./inputs";
+import { toast } from "@/lib/toast";
+import { Button, Checkbox, TextInput } from "./inputs";
+
+const GROUP_ORDER: (keyof ExportInclude)[] = [
+  "ico",
+  "pngBrowser",
+  "apple",
+  "android",
+  "maskable",
+  "mstile",
+  "manifest",
+  "browserconfig",
+  "htmlSnippet",
+  "readme",
+];
+
+const TOTAL_FILES = Object.values(INCLUDE_FILE_COUNTS).reduce((s, n) => s + n, 0);
 
 export function ExportPanel() {
   const config = useConfig((s) => s.config);
   const addToHistory = useHistory((s) => s.add);
+  const include = useExportInclude((s) => s.include);
+  const setInclude = useExportInclude((s) => s.set);
+  const selectAll = useExportInclude((s) => s.selectAll);
+  const selectNone = useExportInclude((s) => s.selectNone);
   const t = useT();
   const locale = useLocale((s) => s.locale);
   const [appName, setAppName] = React.useState("Site");
   const [busy, setBusy] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
+  const [open, setOpen] = React.useState(false);
+
+  const selectedCount = GROUP_ORDER.reduce(
+    (sum, k) => sum + (include[k] ? INCLUDE_FILE_COUNTS[k] : 0),
+    0,
+  );
+  const noneSelected = selectedCount === 0;
 
   const handleDownload = async () => {
+    if (noneSelected) {
+      toast.error(t("export.noneSelected"));
+      return;
+    }
     setBusy(true);
     try {
-      const blob = await buildFaviconZip(config, appName, locale);
+      const blob = await buildFaviconZip(config, appName, locale, include);
       downloadBlob(blob, `favicon-${(appName || "site").toLowerCase()}.zip`);
-      // Сохраняем в локальную историю — миниатюра + полный конфиг для restore.
-      // Ошибка в thumb не должна ломать скачивание, поэтому отдельный try.
       try {
         const thumbDataUrl = await buildThumb(config);
         addToHistory({ appName: appName || "Site", config, thumbDataUrl });
       } catch {
-        // история — best-effort, не критично
+        // история — best-effort
       }
     } finally {
       setBusy(false);
@@ -42,7 +77,6 @@ export function ExportPanel() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      // фолбэк для старых браузеров без clipboard API
       const ta = document.createElement("textarea");
       ta.value = buildHtmlSnippet();
       document.body.appendChild(ta);
@@ -66,7 +100,68 @@ export function ExportPanel() {
         <TextInput value={appName} onChange={(e) => setAppName(e.target.value)} />
       </div>
 
-      <Button onClick={handleDownload} disabled={busy} size="lg" className="w-full">
+      {/* Свёрнутая по умолчанию секция выбора файлов. Закрытый вид показывает
+          счётчик — пользователь сразу видит сколько файлов попадёт в архив. */}
+      <div className="rounded-[var(--r-md)] border border-line bg-surface-2 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="w-full flex items-center justify-between gap-2 px-3 py-2 text-xs text-ink-2 hover:text-ink hover:bg-line/40 transition-colors cursor-pointer"
+        >
+          <span className="flex items-center gap-2">
+            <ChevronDown
+              className={
+                "size-3.5 transition-transform " + (open ? "rotate-0" : "-rotate-90")
+              }
+            />
+            <span suppressHydrationWarning>{t("export.contents")}</span>
+          </span>
+          <span className="font-mono tabular-nums text-[10px] text-muted">
+            {t("export.filesCount")
+              .replace("{n}", String(selectedCount))
+              .replace("{total}", String(TOTAL_FILES))}
+          </span>
+        </button>
+
+        {open && (
+          <div className="border-t border-line p-2 space-y-0.5">
+            {GROUP_ORDER.map((key) => (
+              <Checkbox
+                key={key}
+                checked={include[key]}
+                onChange={(v) => setInclude(key, v)}
+                label={t(`inc.${key}` as Parameters<typeof t>[0])}
+                meta={`×${INCLUDE_FILE_COUNTS[key]}`}
+              />
+            ))}
+            <div className="flex gap-1 pt-2 mt-1 border-t border-line">
+              <button
+                type="button"
+                onClick={selectAll}
+                className="flex-1 text-[10px] text-ink-2 hover:text-ink py-1 rounded-[var(--r-sm)] hover:bg-line/40 transition-colors cursor-pointer"
+                suppressHydrationWarning
+              >
+                {t("export.selectAll")}
+              </button>
+              <button
+                type="button"
+                onClick={selectNone}
+                className="flex-1 text-[10px] text-ink-2 hover:text-ink py-1 rounded-[var(--r-sm)] hover:bg-line/40 transition-colors cursor-pointer"
+                suppressHydrationWarning
+              >
+                {t("export.selectNone")}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Button
+        onClick={handleDownload}
+        disabled={busy || noneSelected}
+        size="lg"
+        className="w-full"
+      >
         {busy ? (
           <>
             <Loader2 className="size-4 animate-spin" />
@@ -93,16 +188,6 @@ export function ExportPanel() {
           </>
         )}
       </Button>
-
-      <div className="text-[11px] text-muted leading-relaxed" suppressHydrationWarning>
-        {t("export.fileList")}
-        <ul className="mt-1 space-y-0.5 list-disc list-inside marker:text-muted/50">
-          <li>favicon.ico (16+32+48)</li>
-          <li>PNG: 16, 32, 96, 150, 180, 192, 512</li>
-          <li>maskable: 192, 512</li>
-          <li>site.webmanifest + browserconfig.xml</li>
-        </ul>
-      </div>
     </div>
   );
 }

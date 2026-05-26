@@ -6,20 +6,51 @@ import { buildBrowserConfig, buildHtmlSnippet, buildManifest } from "./manifest"
 import { renderToPngBlob } from "./renderer";
 import type { FaviconConfig } from "./types";
 
-/**
- * Стандартные PNG-варианты под все веб-платформы. Покрывают браузеры
- * (16/32/96), iOS home screen (180), Android Chrome / PWA (192/512),
- * Windows Tiles (150), плюс maskable-варианты для Android-launcher с
- * формой-маской.
- */
-const PNG_SIZES = {
-  "favicon-16x16.png": 16,
-  "favicon-32x32.png": 32,
-  "favicon-96x96.png": 96,
-  "apple-touch-icon.png": 180,
+/** Группы файлов архива — пользователь может выключать ненужные. */
+export type ExportInclude = {
+  ico: boolean;
+  pngBrowser: boolean;
+  apple: boolean;
+  android: boolean;
+  maskable: boolean;
+  mstile: boolean;
+  manifest: boolean;
+  browserconfig: boolean;
+  htmlSnippet: boolean;
+  readme: boolean;
+};
+
+export const DEFAULT_INCLUDE: ExportInclude = {
+  ico: true,
+  pngBrowser: true,
+  apple: true,
+  android: true,
+  maskable: true,
+  mstile: true,
+  manifest: true,
+  browserconfig: true,
+  htmlSnippet: true,
+  readme: true,
+};
+
+/** Сколько файлов соответствует каждой группе (для счётчика в UI). */
+export const INCLUDE_FILE_COUNTS: Record<keyof ExportInclude, number> = {
+  ico: 1,
+  pngBrowser: 3,
+  apple: 1,
+  android: 2,
+  maskable: 2,
+  mstile: 1,
+  manifest: 1,
+  browserconfig: 1,
+  htmlSnippet: 1,
+  readme: 1,
+};
+
+const BROWSER_PNG = { "favicon-16x16.png": 16, "favicon-32x32.png": 32, "favicon-96x96.png": 96 } as const;
+const ANDROID_PNG = {
   "android-chrome-192x192.png": 192,
   "android-chrome-512x512.png": 512,
-  "mstile-150x150.png": 150,
 } as const;
 
 /** Размеры что вшиваются в один .ico-файл — Vista+ принимает PNG-payload. */
@@ -118,39 +149,71 @@ export async function buildFaviconZip(
   config: FaviconConfig,
   appName: string,
   locale: "ru" | "en" = "ru",
+  include: ExportInclude = DEFAULT_INCLUDE,
 ): Promise<Blob> {
   const zip = new JSZip();
 
-  // Параллельный рендер всех 12 PNG (7 стандартных + 2 maskable + 3 ICO).
-  // На слабых устройствах это раза в 2-3 быстрее последовательного await.
-  const maskableConfig = toMaskableConfig(config);
-  const [standardBlobs, maskableBlobs, icoPngs] = await Promise.all([
-    Promise.all(
-      Object.entries(PNG_SIZES).map(async ([fn, size]) => [fn, await renderToPngBlob(size, config)] as const),
-    ),
-    Promise.all(
-      Object.entries(MASKABLE_SIZES).map(
-        async ([fn, size]) => [fn, await renderToPngBlob(size, maskableConfig)] as const,
-      ),
-    ),
-    Promise.all(
-      ICO_SIZES.map(async (size) => ({
-        size,
-        png: await blobToUint8Array(await renderToPngBlob(size, config)),
-      })),
-    ),
+  // Группы PNG, отрендерим только те что включены — экономия CPU когда
+  // юзер выключил половину.
+  const pngTasks: Promise<readonly [string, Blob]>[] = [];
+  if (include.pngBrowser) {
+    for (const [fn, size] of Object.entries(BROWSER_PNG)) {
+      pngTasks.push(renderToPngBlob(size, config).then((b) => [fn, b] as const));
+    }
+  }
+  if (include.apple) {
+    pngTasks.push(renderToPngBlob(180, config).then((b) => ["apple-touch-icon.png", b] as const));
+  }
+  if (include.android) {
+    for (const [fn, size] of Object.entries(ANDROID_PNG)) {
+      pngTasks.push(renderToPngBlob(size, config).then((b) => [fn, b] as const));
+    }
+  }
+  if (include.mstile) {
+    pngTasks.push(renderToPngBlob(150, config).then((b) => ["mstile-150x150.png", b] as const));
+  }
+
+  const maskableTasks: Promise<readonly [string, Blob]>[] = [];
+  if (include.maskable) {
+    const maskableConfig = toMaskableConfig(config);
+    for (const [fn, size] of Object.entries(MASKABLE_SIZES)) {
+      maskableTasks.push(
+        renderToPngBlob(size, maskableConfig).then((b) => [fn, b] as const),
+      );
+    }
+  }
+
+  const icoTask = include.ico
+    ? Promise.all(
+        ICO_SIZES.map(async (size) => ({
+          size,
+          png: await blobToUint8Array(await renderToPngBlob(size, config)),
+        })),
+      )
+    : Promise.resolve(null);
+
+  const [pngBlobs, maskableBlobs, icoPngs] = await Promise.all([
+    Promise.all(pngTasks),
+    Promise.all(maskableTasks),
+    icoTask,
   ]);
 
-  for (const [fn, blob] of standardBlobs) zip.file(fn, blob);
+  for (const [fn, blob] of pngBlobs) zip.file(fn, blob);
   for (const [fn, blob] of maskableBlobs) zip.file(fn, blob);
-  zip.file("favicon.ico", encodeIco(icoPngs));
+  if (icoPngs) zip.file("favicon.ico", encodeIco(icoPngs));
 
-  // Manifest (с maskable-вариантами) + browserconfig (Windows tiles) + HTML snippet
-  zip.file("site.webmanifest", buildManifest(config, appName || "Site"));
-  zip.file("browserconfig.xml", buildBrowserConfig(config));
-  zip.file("README.html-snippet.html", buildHtmlSnippet());
-
-  zip.file("README.txt", buildReadmeText(locale));
+  if (include.manifest) {
+    zip.file("site.webmanifest", buildManifest(config, appName || "Site"));
+  }
+  if (include.browserconfig) {
+    zip.file("browserconfig.xml", buildBrowserConfig(config));
+  }
+  if (include.htmlSnippet) {
+    zip.file("README.html-snippet.html", buildHtmlSnippet());
+  }
+  if (include.readme) {
+    zip.file("README.txt", buildReadmeText(locale));
+  }
 
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }
