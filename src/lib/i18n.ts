@@ -233,6 +233,10 @@ const dict = {
   "history.download": { ru: "Скачать снова", en: "Download again" },
   "history.pin": { ru: "Закрепить (не выкинется лимитом)", en: "Pin (kept past the limit)" },
   "history.unpin": { ru: "Открепить", en: "Unpin" },
+  "history.renameHint": {
+    ru: "Двойной клик чтобы переименовать",
+    en: "Double-click to rename",
+  },
   "history.delete": { ru: "Удалить", en: "Delete" },
   "history.clearAll": { ru: "Очистить", en: "Clear" },
   "history.confirmClear": {

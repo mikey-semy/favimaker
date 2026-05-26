@@ -15,6 +15,7 @@ export function HistoryPanel() {
   const hydrated = useHistory((s) => s.hydrated);
   const remove = useHistory((s) => s.remove);
   const togglePin = useHistory((s) => s.togglePin);
+  const rename = useHistory((s) => s.rename);
   const clear = useHistory((s) => s.clear);
   const replace = useConfig((s) => s.replace);
   const include = useExportInclude((s) => s.include);
@@ -80,6 +81,7 @@ export function HistoryPanel() {
             onRestore={() => handleRestore(entry)}
             onDownload={() => handleRedownload(entry)}
             onTogglePin={() => togglePin(entry.id)}
+            onRename={(newName) => rename(entry.id, newName)}
             onDelete={() => remove(entry.id)}
           />
         ))}
@@ -108,16 +110,44 @@ function HistoryRow({
   onRestore,
   onDownload,
   onTogglePin,
+  onRename,
   onDelete,
 }: {
   entry: HistoryEntry;
   onRestore: () => void;
   onDownload: () => void;
   onTogglePin: () => void;
+  onRename: (newName: string) => void;
   onDelete: () => void;
 }) {
   const t = useT();
   const locale = useLocale((s) => s.locale);
+  // Inline-edit: double-click переводит в edit mode. Enter — сохранить,
+  // Esc — отменить. Авто-фокус и select при входе.
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState(entry.appName);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editing]);
+
+  const enterEdit = () => {
+    setDraft(entry.appName);
+    setEditing(true);
+  };
+  const commit = () => {
+    if (draft !== entry.appName) onRename(draft);
+    setEditing(false);
+  };
+  const cancel = () => {
+    setDraft(entry.appName);
+    setEditing(false);
+  };
+
   return (
     <li
       className={
@@ -149,7 +179,33 @@ function HistoryRow({
           {entry.pinned && (
             <Pin className="size-3 shrink-0 text-accent fill-accent" aria-hidden />
           )}
-          <span className="truncate">{entry.appName}</span>
+          {editing ? (
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={commit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  commit();
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  cancel();
+                }
+              }}
+              className="flex-1 min-w-0 bg-surface border border-accent/60 rounded-[var(--r-sm)] px-1.5 py-0.5 text-xs text-ink outline-none focus:ring-1 focus:ring-accent/30"
+              maxLength={50}
+            />
+          ) : (
+            <span
+              className="truncate cursor-text"
+              onDoubleClick={enterEdit}
+              title={t("history.renameHint")}
+            >
+              {entry.appName}
+            </span>
+          )}
         </div>
         <div className="text-[10px] text-muted font-mono tabular-nums" suppressHydrationWarning>
           {formatRelative(entry.createdAt, locale, t)}
