@@ -11,9 +11,26 @@ export type HistoryEntry = {
   config: FaviconConfig;
   /** PNG dataURL миниатюры (64×64) — для визуального превью в списке. */
   thumbDataUrl: string;
+  /** Закреплённая запись не вытесняется FIFO-лимитом. Не сериализуется
+   *  в старых записях (undefined ≈ false). */
+  pinned?: boolean;
 };
 
-const MAX_ENTRIES = 20;
+const MAX_UNPINNED = 20;
+
+/**
+ * FIFO-урезка: сохраняем ВСЕ pinned + последние MAX_UNPINNED unpinned
+ * (по порядку — самые свежие сверху). Порядок исходного массива сохраняется,
+ * поэтому pinned остаются на своих местах по времени, а не «всплывают».
+ */
+function trimEntries(list: HistoryEntry[]): HistoryEntry[] {
+  let unpinnedSeen = 0;
+  return list.filter((e) => {
+    if (e.pinned) return true;
+    unpinnedSeen++;
+    return unpinnedSeen <= MAX_UNPINNED;
+  });
+}
 
 type HistoryStore = {
   entries: HistoryEntry[];
@@ -23,6 +40,7 @@ type HistoryStore = {
   setHydrated: () => void;
   add: (entry: Omit<HistoryEntry, "id" | "createdAt">) => void;
   remove: (id: string) => void;
+  togglePin: (id: string) => void;
   clear: () => void;
 };
 
@@ -48,10 +66,24 @@ export const useHistory = create<HistoryStore>()(
             ...entry,
             id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
             createdAt: Date.now(),
+            pinned: false,
           };
-          return { entries: [next, ...s.entries].slice(0, MAX_ENTRIES) };
+          return { entries: trimEntries([next, ...s.entries]) };
         }),
       remove: (id) => set((s) => ({ entries: s.entries.filter((e) => e.id !== id) })),
+      togglePin: (id) =>
+        set((s) => {
+          // После unpin'а уже хранящейся записи общее число unpinned может
+          // превысить MAX_UNPINNED — нужен повторный trim. Pin никогда лимит
+          // не нарушает, но дешевле пройти trim единообразно в обоих случаях.
+          const next = s.entries.map((e) =>
+            e.id === id ? { ...e, pinned: !e.pinned } : e,
+          );
+          return { entries: trimEntries(next) };
+        }),
+      // clear оставляем как «снести всё, включая pinned» — соответствует тексту
+      // кнопки «Очистить всю историю». Если юзер хочет сохранить pinned —
+      // можно открепить вручную.
       clear: () => set({ entries: [] }),
     }),
     {

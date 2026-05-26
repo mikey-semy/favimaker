@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Download, RotateCcw, Trash2 } from "lucide-react";
+import { Download, Pin, PinOff, RotateCcw, Trash2 } from "lucide-react";
 import { useConfig } from "@/lib/store";
 import { useHistory, type HistoryEntry } from "@/lib/history";
 import { buildFaviconZip, downloadBlob } from "@/lib/export";
@@ -14,6 +14,7 @@ export function HistoryPanel() {
   const entries = useHistory((s) => s.entries);
   const hydrated = useHistory((s) => s.hydrated);
   const remove = useHistory((s) => s.remove);
+  const togglePin = useHistory((s) => s.togglePin);
   const clear = useHistory((s) => s.clear);
   const replace = useConfig((s) => s.replace);
   const include = useExportInclude((s) => s.include);
@@ -78,6 +79,7 @@ export function HistoryPanel() {
             entry={entry}
             onRestore={() => handleRestore(entry)}
             onDownload={() => handleRedownload(entry)}
+            onTogglePin={() => togglePin(entry.id)}
             onDelete={() => remove(entry.id)}
           />
         ))}
@@ -105,17 +107,26 @@ function HistoryRow({
   entry,
   onRestore,
   onDownload,
+  onTogglePin,
   onDelete,
 }: {
   entry: HistoryEntry;
   onRestore: () => void;
   onDownload: () => void;
+  onTogglePin: () => void;
   onDelete: () => void;
 }) {
   const t = useT();
   const locale = useLocale((s) => s.locale);
   return (
-    <li className="group flex items-center gap-2 rounded-[var(--r-md)] border border-line bg-surface-2 p-1.5 hover:border-accent/40 transition-colors">
+    <li
+      className={
+        "group flex items-center gap-2 rounded-[var(--r-md)] border bg-surface-2 p-1.5 transition-colors " +
+        (entry.pinned
+          ? "border-accent/40 hover:border-accent/60"
+          : "border-line hover:border-accent/40")
+      }
+    >
       {/* Миниатюра — клик восстанавливает конфиг */}
       <button
         type="button"
@@ -134,13 +145,29 @@ function HistoryRow({
       </button>
 
       <div className="min-w-0 flex-1">
-        <div className="text-xs font-medium text-ink truncate">{entry.appName}</div>
+        <div className="flex items-center gap-1 text-xs font-medium text-ink truncate">
+          {entry.pinned && (
+            <Pin className="size-3 shrink-0 text-accent fill-accent" aria-hidden />
+          )}
+          <span className="truncate">{entry.appName}</span>
+        </div>
         <div className="text-[10px] text-muted font-mono tabular-nums" suppressHydrationWarning>
           {formatRelative(entry.createdAt, locale, t)}
         </div>
       </div>
 
       <div className="flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+        <IconButton
+          onClick={onTogglePin}
+          title={entry.pinned ? t("history.unpin") : t("history.pin")}
+          active={entry.pinned}
+        >
+          {entry.pinned ? (
+            <PinOff className="size-3.5" />
+          ) : (
+            <Pin className="size-3.5" />
+          )}
+        </IconButton>
         <IconButton onClick={onRestore} title={t("history.restore")}>
           <RotateCcw className="size-3.5" />
         </IconButton>
@@ -159,11 +186,13 @@ function IconButton({
   onClick,
   title,
   danger,
+  active,
   children,
 }: {
   onClick: () => void;
   title: string;
   danger?: boolean;
+  active?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -173,8 +202,12 @@ function IconButton({
       title={title}
       aria-label={title}
       className={
-        "flex items-center justify-center size-6 rounded-[var(--r-sm)] text-ink-2 transition-colors cursor-pointer " +
-        (danger ? "hover:text-red-500 hover:bg-red-500/10" : "hover:text-ink hover:bg-line/60")
+        "flex items-center justify-center size-6 rounded-[var(--r-sm)] transition-colors cursor-pointer " +
+        (active
+          ? "text-accent hover:bg-line/60"
+          : danger
+            ? "text-ink-2 hover:text-red-500 hover:bg-red-500/10"
+            : "text-ink-2 hover:text-ink hover:bg-line/60")
       }
     >
       {children}
