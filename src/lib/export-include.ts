@@ -31,6 +31,19 @@ export const useExportInclude = create<IncludeStore>()(
           ) as ExportInclude,
         }),
     }),
-    { name: "favimaker.export-include.v1" },
+    {
+      name: "favimaker.export-include.v1",
+      version: 2,
+      // v1 → v2: добавлен ключ `svg`. У старых юзеров его нет — мержим
+      // дефолты поверх сохранённого include, чтобы новый ключ оказался true.
+      migrate: (persisted: unknown, version) => {
+        const state = persisted as { include?: Partial<ExportInclude> } | undefined;
+        if (!state) return { include: DEFAULT_INCLUDE };
+        if (version < 2) {
+          return { include: { ...DEFAULT_INCLUDE, ...(state.include ?? {}) } };
+        }
+        return state;
+      },
+    },
   ),
 );

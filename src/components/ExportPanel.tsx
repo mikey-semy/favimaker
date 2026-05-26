@@ -17,6 +17,7 @@ import { toast } from "@/lib/toast";
 import { Button, Checkbox, TextInput } from "./inputs";
 
 const GROUP_ORDER: (keyof ExportInclude)[] = [
+  "svg",
   "ico",
   "pngBrowser",
   "apple",
@@ -45,10 +46,17 @@ export function ExportPanel() {
   const [copied, setCopied] = React.useState(false);
   const [open, setOpen] = React.useState(false);
 
+  // SVG не генерируется для source=image (растровый источник в SVG-обёртке
+  // бессмысленен). Чекбокс блокируем и из счётчика исключаем — иначе
+  // юзер видит «1 файл», а в архиве его нет.
+  const svgDisabled = config.source === "image";
+  const isGroupEffective = (k: keyof ExportInclude) =>
+    include[k] && !(k === "svg" && svgDisabled);
   const selectedCount = GROUP_ORDER.reduce(
-    (sum, k) => sum + (include[k] ? INCLUDE_FILE_COUNTS[k] : 0),
+    (sum, k) => sum + (isGroupEffective(k) ? INCLUDE_FILE_COUNTS[k] : 0),
     0,
   );
+  const totalForSource = svgDisabled ? TOTAL_FILES - INCLUDE_FILE_COUNTS.svg : TOTAL_FILES;
   const noneSelected = selectedCount === 0;
 
   const handleDownload = async () => {
@@ -72,13 +80,24 @@ export function ExportPanel() {
   };
 
   const handleCopySnippet = async () => {
+    // Сниппет должен ссылаться только на файлы которые юзер реально включит
+    // в архив. SVG-link дополнительно прячем для image-source — для него
+    // SVG-файл не генерируется.
+    const snippet = buildHtmlSnippet({
+      svg: include.svg && config.source !== "image",
+      ico: include.ico,
+      pngBrowser: include.pngBrowser,
+      apple: include.apple,
+      manifest: include.manifest,
+      browserconfig: include.browserconfig,
+    });
     try {
-      await navigator.clipboard.writeText(buildHtmlSnippet());
+      await navigator.clipboard.writeText(snippet);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
       const ta = document.createElement("textarea");
-      ta.value = buildHtmlSnippet();
+      ta.value = snippet;
       document.body.appendChild(ta);
       ta.select();
       document.execCommand("copy");
@@ -119,21 +138,26 @@ export function ExportPanel() {
           <span className="font-mono tabular-nums text-[10px] text-muted">
             {t("export.filesCount")
               .replace("{n}", String(selectedCount))
-              .replace("{total}", String(TOTAL_FILES))}
+              .replace("{total}", String(totalForSource))}
           </span>
         </button>
 
         {open && (
           <div className="border-t border-line p-2 space-y-0.5">
-            {GROUP_ORDER.map((key) => (
-              <Checkbox
-                key={key}
-                checked={include[key]}
-                onChange={(v) => setInclude(key, v)}
-                label={t(`inc.${key}` as Parameters<typeof t>[0])}
-                meta={`×${INCLUDE_FILE_COUNTS[key]}`}
-              />
-            ))}
+            {GROUP_ORDER.map((key) => {
+              const groupDisabled = key === "svg" && svgDisabled;
+              return (
+                <Checkbox
+                  key={key}
+                  checked={include[key]}
+                  disabled={groupDisabled}
+                  title={groupDisabled ? t("inc.svgUnavailable") : undefined}
+                  onChange={(v) => setInclude(key, v)}
+                  label={t(`inc.${key}` as Parameters<typeof t>[0])}
+                  meta={`×${INCLUDE_FILE_COUNTS[key]}`}
+                />
+              );
+            })}
             <div className="flex gap-1 pt-2 mt-1 border-t border-line">
               <button
                 type="button"

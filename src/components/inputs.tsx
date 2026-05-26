@@ -203,29 +203,38 @@ export function Checkbox({
   label,
   meta,
   className,
+  disabled,
+  title,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   label: React.ReactNode;
   meta?: React.ReactNode;
   className?: string;
+  disabled?: boolean;
+  title?: string;
 }) {
   return (
     <label
+      title={title}
       className={cn(
-        "flex items-center gap-2 cursor-pointer text-xs text-ink-2 hover:text-ink py-1 group select-none",
+        "flex items-center gap-2 text-xs py-1 group select-none",
+        disabled
+          ? "opacity-40 cursor-not-allowed text-muted"
+          : "cursor-pointer text-ink-2 hover:text-ink",
         className,
       )}
     >
       <input
         type="checkbox"
         checked={checked}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
         className={cn(
-          "appearance-none size-3.5 shrink-0 rounded-[3px] border border-line bg-surface-2 cursor-pointer transition-colors",
+          "appearance-none size-3.5 shrink-0 rounded-[3px] border border-line bg-surface-2 transition-colors",
+          disabled ? "cursor-not-allowed" : "cursor-pointer",
           "checked:bg-accent checked:border-accent",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30",
-          // галочка через CSS
           "relative checked:after:content-[''] checked:after:absolute checked:after:left-[3px] checked:after:top-[0px]",
           "checked:after:w-[4px] checked:after:h-[8px] checked:after:border-[var(--accent-ink)]",
           "checked:after:border-r-2 checked:after:border-b-2 checked:after:rotate-45",

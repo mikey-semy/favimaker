@@ -111,6 +111,11 @@ const dict = {
     ru: "Выберите хотя бы один файл",
     en: "Select at least one file",
   },
+  "inc.svg": { ru: "favicon.svg (vector)", en: "favicon.svg (vector)" },
+  "inc.svgUnavailable": {
+    ru: "SVG не генерируется для источника «Картинка»",
+    en: "SVG is not generated for image source",
+  },
   "inc.ico": { ru: "favicon.ico (16+32+48)", en: "favicon.ico (16+32+48)" },
   "inc.pngBrowser": { ru: "Browser PNG (16, 32, 96)", en: "Browser PNG (16, 32, 96)" },
   "inc.apple": { ru: "Apple Touch Icon (180)", en: "Apple Touch Icon (180)" },
