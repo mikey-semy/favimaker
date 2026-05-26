@@ -71,15 +71,37 @@ export function buildBrowserConfig(config: FaviconConfig): string {
 `;
 }
 
-/** HTML-сниппет для вставки в <head> сайта. */
-export function buildHtmlSnippet(): string {
-  return `<!-- Сгенерировано favimaker. Положите все файлы в /public корня сайта. -->
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="manifest" href="/site.webmanifest">
-<meta name="msapplication-config" content="/browserconfig.xml">
-`;
+/**
+ * HTML-сниппет для вставки в <head> сайта.
+ *
+ * Все секции — опциональные, чтобы сниппет не ссылался на файлы которых
+ * нет в архиве. Если include не задан — включаем всё (старый default).
+ */
+export type SnippetInclude = {
+  svg?: boolean;
+  ico?: boolean;
+  pngBrowser?: boolean;
+  apple?: boolean;
+  manifest?: boolean;
+  browserconfig?: boolean;
+};
+
+export function buildHtmlSnippet(include: SnippetInclude = {}): string {
+  // Дефолт = всё включено (для старых вызовов без аргумента)
+  const flag = (key: keyof SnippetInclude) => include[key] !== false;
+  const lines: string[] = ["<!-- Сгенерировано favimaker. Положите все файлы в /public корня сайта. -->"];
+
+  // SVG идёт первым: современные браузеры приоритезируют его перед ico/png
+  if (flag("svg")) lines.push(`<link rel="icon" type="image/svg+xml" href="/favicon.svg">`);
+  if (flag("ico")) lines.push(`<link rel="icon" href="/favicon.ico" sizes="any">`);
+  if (flag("pngBrowser")) {
+    lines.push(`<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">`);
+    lines.push(`<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">`);
+    lines.push(`<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">`);
+  }
+  if (flag("apple")) lines.push(`<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">`);
+  if (flag("manifest")) lines.push(`<link rel="manifest" href="/site.webmanifest">`);
+  if (flag("browserconfig")) lines.push(`<meta name="msapplication-config" content="/browserconfig.xml">`);
+
+  return lines.join("\n") + "\n";
 }

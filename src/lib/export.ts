@@ -4,10 +4,12 @@ import JSZip from "jszip";
 import { encodeIco } from "./ico";
 import { buildBrowserConfig, buildHtmlSnippet, buildManifest } from "./manifest";
 import { renderToPngBlob } from "./renderer";
+import { renderToSvgString } from "./svg-render";
 import type { FaviconConfig } from "./types";
 
 /** Группы файлов архива — пользователь может выключать ненужные. */
 export type ExportInclude = {
+  svg: boolean;
   ico: boolean;
   pngBrowser: boolean;
   apple: boolean;
@@ -21,6 +23,7 @@ export type ExportInclude = {
 };
 
 export const DEFAULT_INCLUDE: ExportInclude = {
+  svg: true,
   ico: true,
   pngBrowser: true,
   apple: true,
@@ -35,6 +38,7 @@ export const DEFAULT_INCLUDE: ExportInclude = {
 
 /** Сколько файлов соответствует каждой группе (для счётчика в UI). */
 export const INCLUDE_FILE_COUNTS: Record<keyof ExportInclude, number> = {
+  svg: 1,
   ico: 1,
   pngBrowser: 3,
   apple: 1,
@@ -74,6 +78,7 @@ function buildReadmeText(locale: "ru" | "en"): string {
       "favimaker — generated favicon package",
       "",
       "Files:",
+      "  favicon.svg                              — modern browsers (vector, sharp at any DPI)",
       "  favicon.ico                              — legacy browsers / Windows (16+32+48)",
       "  favicon-16x16.png                        — browser tab",
       "  favicon-32x32.png                        — browser tab (retina)",
@@ -102,6 +107,7 @@ function buildReadmeText(locale: "ru" | "en"): string {
     "favimaker — сгенерированный пакет favicon",
     "",
     "Файлы:",
+    "  favicon.svg                              — современные браузеры (vector, резко на любом DPI)",
     "  favicon.ico                              — старые браузеры / Windows (16+32+48)",
     "  favicon-16x16.png                        — браузерная вкладка",
     "  favicon-32x32.png                        — браузерная вкладка retina",
@@ -192,15 +198,22 @@ export async function buildFaviconZip(
       )
     : Promise.resolve(null);
 
-  const [pngBlobs, maskableBlobs, icoPngs] = await Promise.all([
+  // SVG — отдельной таской: renderToSvgString вернёт null для image-source
+  const svgTask: Promise<string | null> = include.svg
+    ? renderToSvgString(config)
+    : Promise.resolve(null);
+
+  const [pngBlobs, maskableBlobs, icoPngs, svgString] = await Promise.all([
     Promise.all(pngTasks),
     Promise.all(maskableTasks),
     icoTask,
+    svgTask,
   ]);
 
   for (const [fn, blob] of pngBlobs) zip.file(fn, blob);
   for (const [fn, blob] of maskableBlobs) zip.file(fn, blob);
   if (icoPngs) zip.file("favicon.ico", encodeIco(icoPngs));
+  if (svgString) zip.file("favicon.svg", svgString);
 
   if (include.manifest) {
     zip.file("site.webmanifest", buildManifest(config, appName || "Site"));
@@ -209,7 +222,17 @@ export async function buildFaviconZip(
     zip.file("browserconfig.xml", buildBrowserConfig(config));
   }
   if (include.htmlSnippet) {
-    zip.file("README.html-snippet.html", buildHtmlSnippet());
+    zip.file(
+      "README.html-snippet.html",
+      buildHtmlSnippet({
+        svg: include.svg && config.source !== "image",
+        ico: include.ico,
+        pngBrowser: include.pngBrowser,
+        apple: include.apple,
+        manifest: include.manifest,
+        browserconfig: include.browserconfig,
+      }),
+    );
   }
   if (include.readme) {
     zip.file("README.txt", buildReadmeText(locale));

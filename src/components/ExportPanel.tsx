@@ -17,6 +17,7 @@ import { toast } from "@/lib/toast";
 import { Button, Checkbox, TextInput } from "./inputs";
 
 const GROUP_ORDER: (keyof ExportInclude)[] = [
+  "svg",
   "ico",
   "pngBrowser",
   "apple",
@@ -72,13 +73,24 @@ export function ExportPanel() {
   };
 
   const handleCopySnippet = async () => {
+    // Сниппет должен ссылаться только на файлы которые юзер реально включит
+    // в архив. SVG-link дополнительно прячем для image-source — для него
+    // SVG-файл не генерируется.
+    const snippet = buildHtmlSnippet({
+      svg: include.svg && config.source !== "image",
+      ico: include.ico,
+      pngBrowser: include.pngBrowser,
+      apple: include.apple,
+      manifest: include.manifest,
+      browserconfig: include.browserconfig,
+    });
     try {
-      await navigator.clipboard.writeText(buildHtmlSnippet());
+      await navigator.clipboard.writeText(snippet);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
       const ta = document.createElement("textarea");
-      ta.value = buildHtmlSnippet();
+      ta.value = snippet;
       document.body.appendChild(ta);
       ta.select();
       document.execCommand("copy");
