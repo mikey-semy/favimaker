@@ -20,6 +20,7 @@ import { useConfig } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { Button, ColorInput, Select, Slider, SegmentedControl, TextInput } from "./inputs";
 import { Field, FieldRow } from "./Field";
+import { ContrastBadge } from "./ContrastBadge";
 import { DropZone } from "./DropZone";
 import { Presets } from "./Presets";
 import { EmojiPicker } from "./EmojiPicker";
@@ -170,7 +171,7 @@ function SourceTab() {
             </Field>
           </FieldRow>
           <FieldRow>
-            <Field label={t("field.textColor")}>
+            <Field label={t("field.textColor")} hint={<ContrastBadge />}>
               <ColorInput value={config.textColor} onChange={(v) => set("textColor", v)} />
             </Field>
             <Field label={t("field.letterSpacing")} hint={`${config.letterSpacing.toFixed(2)}em`}>
