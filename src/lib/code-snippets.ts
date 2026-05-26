@@ -149,3 +149,83 @@ export function buildNextJsAppleIconSnippet(config: FaviconConfig): string {
   const body = buildNextJsIconSnippet(config, 180);
   return body.replace("export default function Icon()", "export default function AppleIcon()");
 }
+
+// ── React / Vue inline-SVG components ────────────────────────────────────
+//
+// Берём готовый SVG из renderToSvgString (тот же что в favicon.svg) и
+// заворачиваем в компонент с size-prop. Юзеру: paste в src/, импортируй
+// как обычный компонент → отрисует тот же бренд-стиль в любом месте app.
+//
+// Для иконок (lucide-source) асинхронный путь — динамический импорт
+// react-dom/server. Поэтому builders принимают уже-готовый svg-string,
+// а ExportPanel сам вызывает renderToSvgString перед билдером.
+
+/**
+ * Извлекает внутренности и viewBox из SVG-строки.
+ * Ожидаем формат: <svg xmlns="..." viewBox="X Y W H">...</svg>
+ */
+function parseSvg(svg: string): { viewBox: string; inner: string } {
+  const viewBoxMatch = svg.match(/viewBox="([^"]+)"/);
+  const viewBox = viewBoxMatch?.[1] ?? "0 0 100 100";
+  const inner = svg.replace(/^<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
+  return { viewBox, inner };
+}
+
+/** React-компонент (TSX) с inline-SVG. PascalCase name, size prop default. */
+export function buildReactSvgComponent(svg: string, componentName = "FavimakerIcon"): string {
+  const { viewBox, inner } = parseSvg(svg);
+  return `type ${componentName}Props = {
+  /** Размер в пикселях (квадратный). По умолчанию 32. */
+  size?: number;
+  className?: string;
+};
+
+export function ${componentName}({ size = 32, className }: ${componentName}Props) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="${viewBox}"
+      width={size}
+      height={size}
+      className={className}
+      aria-hidden="true"
+    >
+      ${inner}
+    </svg>
+  );
+}
+`;
+}
+
+/** Vue 3 SFC (script setup TS) с inline-SVG. */
+export function buildVueSvgComponent(svg: string, componentName = "FavimakerIcon"): string {
+  const { viewBox, inner } = parseSvg(svg);
+  // Vue использует :width="size" для bind'а к prop. Иначе атрибут пишется
+  // как обычная строка и size-prop не действует.
+  return `<script setup lang="ts">
+withDefaults(
+  defineProps<{
+    /** Размер в пикселях (квадратный). По умолчанию 32. */
+    size?: number;
+    class?: string;
+  }>(),
+  { size: 32 }
+);
+</script>
+
+<template>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="${viewBox}"
+    :width="size"
+    :height="size"
+    :class="$attrs.class"
+    aria-hidden="true"
+  >
+    ${inner}
+  </svg>
+</template>
+
+<!-- Сгенерировано favimaker. Имя файла: ${componentName}.vue -->
+`;
+}

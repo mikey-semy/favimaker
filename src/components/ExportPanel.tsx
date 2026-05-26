@@ -14,7 +14,10 @@ import { buildHtmlSnippet } from "@/lib/manifest";
 import {
   buildNextJsAppleIconSnippet,
   buildNextJsIconSnippet,
+  buildReactSvgComponent,
+  buildVueSvgComponent,
 } from "@/lib/code-snippets";
+import { renderToSvgString } from "@/lib/svg-render";
 import { useLocale, useT } from "@/lib/i18n";
 import { buildThumb, useHistory } from "@/lib/history";
 import { onShortcut } from "@/lib/shortcuts";
@@ -257,6 +260,28 @@ export function ExportPanel() {
             getCode={() => buildNextJsAppleIconSnippet(config)}
             tooltip={t("export.copyNextAppleIconHint")}
           />
+          {/* Inline-SVG React/Vue components — для in-app brand. Бессмысленны
+              для source=image (там сам SVG-renderer возвращает null). */}
+          <CopyCodeButton
+            label="FavimakerIcon.tsx"
+            getCode={async () => {
+              const svg = await renderToSvgString(config);
+              return svg ? buildReactSvgComponent(svg) : null;
+            }}
+            tooltip={t("export.copyReactComponentHint")}
+            disabled={config.source === "image"}
+            disabledTooltip={t("export.svgComponentUnavailable")}
+          />
+          <CopyCodeButton
+            label="FavimakerIcon.vue"
+            getCode={async () => {
+              const svg = await renderToSvgString(config);
+              return svg ? buildVueSvgComponent(svg) : null;
+            }}
+            tooltip={t("export.copyVueComponentHint")}
+            disabled={config.source === "image"}
+            disabledTooltip={t("export.svgComponentUnavailable")}
+          />
         </div>
       </div>
     </div>
@@ -267,16 +292,26 @@ function CopyCodeButton({
   label,
   getCode,
   tooltip,
+  disabled,
+  disabledTooltip,
 }: {
   label: string;
-  getCode: () => string;
+  /** Возвращает код или null если генерация не имеет смысла (тогда — toast). */
+  getCode: () => string | Promise<string | null>;
   tooltip: string;
+  disabled?: boolean;
+  disabledTooltip?: string;
 }) {
   const t = useT();
   const [copied, setCopied] = React.useState(false);
 
   const onClick = async () => {
-    const code = getCode();
+    if (disabled) return;
+    const code = await getCode();
+    if (code === null) {
+      toast.error(disabledTooltip ?? t("export.codegenFailed"));
+      return;
+    }
     try {
       await navigator.clipboard.writeText(code);
     } catch {
@@ -296,8 +331,14 @@ function CopyCodeButton({
     <button
       type="button"
       onClick={onClick}
-      title={tooltip}
-      className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-[var(--r-sm)] bg-surface-2 border border-line text-ink-2 hover:text-ink hover:border-accent/40 transition-colors cursor-pointer text-xs font-mono"
+      disabled={disabled}
+      title={disabled ? disabledTooltip : tooltip}
+      className={
+        "w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-[var(--r-sm)] bg-surface-2 border border-line text-xs font-mono transition-colors " +
+        (disabled
+          ? "opacity-40 cursor-not-allowed text-muted"
+          : "text-ink-2 hover:text-ink hover:border-accent/40 cursor-pointer")
+      }
     >
       <span className="flex items-center gap-2 min-w-0 truncate">
         <Code className="size-3.5 shrink-0" />
