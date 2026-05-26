@@ -90,4 +90,8 @@
 `- [x] VOID-XX — короткое описание · merged YYYY-MM-DD · #PR`
 
 - [x] VOID-11 — SVG favicon export · merged 2026-05-26 · #2
-- [ ] VOID-12 — Safari pinned-tab.svg (in progress)
+- [x] VOID-12 — Safari pinned-tab.svg · merged 2026-05-26 · #3
+- [x] VOID-19 — Undo/redo (Ctrl+Z) · merged 2026-05-26 · #4
+- [x] VOID-20 — WCAG contrast badge · merged 2026-05-26 · #5
+- [x] VOID-21 — Eyedropper в ColorInput · merged 2026-05-26 · #6
+- [x] VOID-25 — Pin/unpin записей истории · merged 2026-05-26 · #7
