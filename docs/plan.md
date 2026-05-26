@@ -89,4 +89,5 @@
 Обновлять по мере мержа PR. Формат строки:
 `- [x] VOID-XX — короткое описание · merged YYYY-MM-DD · #PR`
 
-- [ ] (пусто, начинаем с VOID-11)
+- [x] VOID-11 — SVG favicon export · merged 2026-05-26 · #2
+- [ ] VOID-12 — Safari pinned-tab.svg (in progress)

@@ -18,6 +18,7 @@ import { Button, Checkbox, TextInput } from "./inputs";
 
 const GROUP_ORDER: (keyof ExportInclude)[] = [
   "svg",
+  "safariPinnedTab",
   "ico",
   "pngBrowser",
   "apple",
@@ -29,6 +30,10 @@ const GROUP_ORDER: (keyof ExportInclude)[] = [
   "htmlSnippet",
   "readme",
 ];
+
+/** Группы которые не имеют смысла когда source=image (SVG-вектор бессмысленен
+ *  поверх растра). Их чекбоксы блокируем и из счётчика исключаем. */
+const SVG_ONLY_GROUPS: ReadonlyArray<keyof ExportInclude> = ["svg", "safariPinnedTab"];
 
 const TOTAL_FILES = Object.values(INCLUDE_FILE_COUNTS).reduce((s, n) => s + n, 0);
 
@@ -46,17 +51,21 @@ export function ExportPanel() {
   const [copied, setCopied] = React.useState(false);
   const [open, setOpen] = React.useState(false);
 
-  // SVG не генерируется для source=image (растровый источник в SVG-обёртке
-  // бессмысленен). Чекбокс блокируем и из счётчика исключаем — иначе
-  // юзер видит «1 файл», а в архиве его нет.
-  const svgDisabled = config.source === "image";
+  // Векторные группы (favicon.svg, safari-pinned-tab.svg) не имеют смысла
+  // при source=image — растр в SVG-обёртке бессмысленен. Блокируем чекбоксы
+  // и исключаем из счётчика, иначе «N файлов» врёт.
+  const svgGroupsDisabled = config.source === "image";
+  const isGroupDisabled = (k: keyof ExportInclude) =>
+    svgGroupsDisabled && SVG_ONLY_GROUPS.includes(k);
   const isGroupEffective = (k: keyof ExportInclude) =>
-    include[k] && !(k === "svg" && svgDisabled);
+    include[k] && !isGroupDisabled(k);
   const selectedCount = GROUP_ORDER.reduce(
     (sum, k) => sum + (isGroupEffective(k) ? INCLUDE_FILE_COUNTS[k] : 0),
     0,
   );
-  const totalForSource = svgDisabled ? TOTAL_FILES - INCLUDE_FILE_COUNTS.svg : TOTAL_FILES;
+  const totalForSource = svgGroupsDisabled
+    ? TOTAL_FILES - SVG_ONLY_GROUPS.reduce((s, k) => s + INCLUDE_FILE_COUNTS[k], 0)
+    : TOTAL_FILES;
   const noneSelected = selectedCount === 0;
 
   const handleDownload = async () => {
@@ -81,10 +90,11 @@ export function ExportPanel() {
 
   const handleCopySnippet = async () => {
     // Сниппет должен ссылаться только на файлы которые юзер реально включит
-    // в архив. SVG-link дополнительно прячем для image-source — для него
-    // SVG-файл не генерируется.
+    // в архив. SVG-группы дополнительно прячем для image-source.
     const snippet = buildHtmlSnippet({
       svg: include.svg && config.source !== "image",
+      safariPinnedTab: include.safariPinnedTab && config.source !== "image",
+      safariPinnedTabColor: config.textColor,
       ico: include.ico,
       pngBrowser: include.pngBrowser,
       apple: include.apple,
@@ -145,7 +155,7 @@ export function ExportPanel() {
         {open && (
           <div className="border-t border-line p-2 space-y-0.5">
             {GROUP_ORDER.map((key) => {
-              const groupDisabled = key === "svg" && svgDisabled;
+              const groupDisabled = isGroupDisabled(key);
               return (
                 <Checkbox
                   key={key}

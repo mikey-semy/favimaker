@@ -4,12 +4,13 @@ import JSZip from "jszip";
 import { encodeIco } from "./ico";
 import { buildBrowserConfig, buildHtmlSnippet, buildManifest } from "./manifest";
 import { renderToPngBlob } from "./renderer";
-import { renderToSvgString } from "./svg-render";
+import { renderToPinnedTabSvg, renderToSvgString } from "./svg-render";
 import type { FaviconConfig } from "./types";
 
 /** Группы файлов архива — пользователь может выключать ненужные. */
 export type ExportInclude = {
   svg: boolean;
+  safariPinnedTab: boolean;
   ico: boolean;
   pngBrowser: boolean;
   apple: boolean;
@@ -24,6 +25,7 @@ export type ExportInclude = {
 
 export const DEFAULT_INCLUDE: ExportInclude = {
   svg: true,
+  safariPinnedTab: true,
   ico: true,
   pngBrowser: true,
   apple: true,
@@ -39,6 +41,7 @@ export const DEFAULT_INCLUDE: ExportInclude = {
 /** Сколько файлов соответствует каждой группе (для счётчика в UI). */
 export const INCLUDE_FILE_COUNTS: Record<keyof ExportInclude, number> = {
   svg: 1,
+  safariPinnedTab: 1,
   ico: 1,
   pngBrowser: 3,
   apple: 1,
@@ -89,6 +92,7 @@ function buildReadmeText(locale: "ru" | "en"): string {
       "  android-chrome-maskable-192x192.png      — Android launcher with mask (safe zone)",
       "  android-chrome-maskable-512x512.png      — same for large",
       "  mstile-150x150.png                       — Windows pinned tile",
+      "  safari-pinned-tab.svg                    — Safari pinned tab (monochrome mask)",
       "  site.webmanifest                         — PWA manifest (with maskable variants)",
       "  browserconfig.xml                        — Windows tiles config",
       "  README.html-snippet.html                 — ready <link> tags for <head>",
@@ -96,9 +100,6 @@ function buildReadmeText(locale: "ru" | "en"): string {
       "Installation:",
       "  1. Unpack everything into /public of your site root.",
       "  2. Paste contents of README.html-snippet.html into your <head>.",
-      "",
-      "macOS Safari pinned tab (safari-pinned-tab.svg) skipped —",
-      "it requires monochrome SVG generation. Safari works fine without it.",
       "",
       "Generated with favimaker (https://github.com/mikey-semy/favimaker)",
     ].join("\n");
@@ -118,6 +119,7 @@ function buildReadmeText(locale: "ru" | "en"): string {
     "  android-chrome-maskable-192x192.png      — Android-launcher с обрезкой (safe zone)",
     "  android-chrome-maskable-512x512.png      — то же для large",
     "  mstile-150x150.png                       — Windows pinned tile",
+    "  safari-pinned-tab.svg                    — Safari pinned tab (монохромная маска)",
     "  site.webmanifest                         — PWA-манифест (с maskable-вариантами)",
     "  browserconfig.xml                        — config для Windows tiles",
     "  README.html-snippet.html                 — готовые <link> для <head>",
@@ -125,9 +127,6 @@ function buildReadmeText(locale: "ru" | "en"): string {
     "Установка:",
     "  1. Распакуйте всё в /public корня сайта.",
     "  2. Вставьте содержимое README.html-snippet.html в <head>.",
-    "",
-    "macOS Safari pinned tab (safari-pinned-tab.svg) пропущен —",
-    "требует одноцветной SVG-генерации. Safari работает и без него.",
     "",
     "Сгенерировано favimaker (https://github.com/mikey-semy/favimaker)",
   ].join("\n");
@@ -198,22 +197,27 @@ export async function buildFaviconZip(
       )
     : Promise.resolve(null);
 
-  // SVG — отдельной таской: renderToSvgString вернёт null для image-source
+  // SVG-таски: вернут null для image-source (raster в SVG бессмысленен)
   const svgTask: Promise<string | null> = include.svg
     ? renderToSvgString(config)
     : Promise.resolve(null);
+  const pinnedTabTask: Promise<string | null> = include.safariPinnedTab
+    ? renderToPinnedTabSvg(config)
+    : Promise.resolve(null);
 
-  const [pngBlobs, maskableBlobs, icoPngs, svgString] = await Promise.all([
+  const [pngBlobs, maskableBlobs, icoPngs, svgString, pinnedTabSvg] = await Promise.all([
     Promise.all(pngTasks),
     Promise.all(maskableTasks),
     icoTask,
     svgTask,
+    pinnedTabTask,
   ]);
 
   for (const [fn, blob] of pngBlobs) zip.file(fn, blob);
   for (const [fn, blob] of maskableBlobs) zip.file(fn, blob);
   if (icoPngs) zip.file("favicon.ico", encodeIco(icoPngs));
   if (svgString) zip.file("favicon.svg", svgString);
+  if (pinnedTabSvg) zip.file("safari-pinned-tab.svg", pinnedTabSvg);
 
   if (include.manifest) {
     zip.file("site.webmanifest", buildManifest(config, appName || "Site"));
@@ -226,6 +230,8 @@ export async function buildFaviconZip(
       "README.html-snippet.html",
       buildHtmlSnippet({
         svg: include.svg && config.source !== "image",
+        safariPinnedTab: include.safariPinnedTab && config.source !== "image",
+        safariPinnedTabColor: config.textColor,
         ico: include.ico,
         pngBrowser: include.pngBrowser,
         apple: include.apple,

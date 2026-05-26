@@ -207,3 +207,28 @@ export async function renderToSvgString(config: FaviconConfig): Promise<string |
   const defsBlock = allDefs ? `<defs>${allDefs}</defs>` : "";
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SIZE} ${SIZE}">${defsBlock}<g${clipAttr}>${bgEl}${content}</g>${border}</svg>`;
 }
+
+/**
+ * Safari pinned-tab SVG: монохромный силуэт без фона/формы/тени/бордера.
+ * Safari использует только alpha-канал — заливает финальную иконку цветом
+ * из атрибута `color` на <link rel="mask-icon">. В файле фиксируем чёрный
+ * — он всё равно будет перекрашен браузером.
+ *
+ * Для source=image возвращаем null: трассировка силуэта по альфе raster-а
+ * без OpenCV сложна и за пределами скоупа.
+ */
+export async function renderToPinnedTabSvg(config: FaviconConfig): Promise<string | null> {
+  if (config.source === "image") return null;
+  const monoConfig: FaviconConfig = {
+    ...config,
+    textColor: "#000000",
+    textStrokeColor: null,
+    textStrokeWidth: 0,
+    bgMode: "transparent",
+    borderWidth: 0,
+    shadow: false,
+    shape: "square",
+    borderRadiusPct: 0,
+  };
+  return renderToSvgString(monoConfig);
+}
