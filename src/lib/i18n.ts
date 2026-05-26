@@ -196,6 +196,10 @@ const dict = {
   "fonts.cyrillicOnly": { ru: "Только кириллица", en: "Cyrillic only" },
   "fonts.search": { ru: "Поиск...", en: "Search..." },
   "fonts.fontLabel": { ru: "Шрифт", en: "Font" },
+  "fonts.loadFailed": {
+    ru: "Не удалось загрузить полный каталог шрифтов — остаюсь на курируемом",
+    en: "Failed to load full font catalog — staying on curated list",
+  },
 
   // gradient directions
   "grad.br": { ru: "↘ к нижне-правому", en: "↘ bottom-right" },

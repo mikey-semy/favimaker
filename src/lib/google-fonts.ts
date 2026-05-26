@@ -64,7 +64,6 @@ export const POPULAR_FONTS: GoogleFont[] = [
   { family: "Fjalla One", category: "display", weights: [400], cyrillic: true },
   { family: "Alfa Slab One", category: "display", weights: [400], cyrillic: false },
   { family: "Black Ops One", category: "display", weights: [400], cyrillic: false },
-  { family: "Russo One", category: "display", weights: [400], cyrillic: true },
   { family: "Audiowide", category: "display", weights: [400], cyrillic: true },
   { family: "Orbitron", category: "display", weights: [400, 600, 700, 800, 900], cyrillic: false },
   { family: "Bowlby One", category: "display", weights: [400], cyrillic: false },
@@ -152,8 +151,17 @@ export function getCachedFonts(): GoogleFont[] | null {
   return null;
 }
 
-/** Скачать полный каталог Google Fonts (~1500 шт.) через Fontsource API.
- *  Дедуплицирует одновременные вызовы через shared promise. */
+/**
+ * Загрузить полный каталог Google Fonts (~1968 шт.).
+ *
+ * **Primary source**: `public/google-fonts.json` (same-origin, ~180КБ raw /
+ *   ~30КБ gzip). Захоститен с приложением — никогда не CORS, не блокируется
+ *   корпоративными firewall'ами / AdBlock'ами / CSP.
+ * **Fallback**: api.fontsource.org. Срабатывает только если same-origin
+ *   почему-то 404 (например, забыли задеплоить public/) — на проде не должно.
+ *
+ * Дедупликация одновременных вызовов через shared promise.
+ */
 export async function fetchAllFonts(): Promise<GoogleFont[]> {
   const cached = getCachedFonts();
   if (cached) return cached;
@@ -161,36 +169,7 @@ export async function fetchAllFonts(): Promise<GoogleFont[]> {
 
   inFlight = (async () => {
     try {
-      // Таймаут чтобы не висеть бесконечно при медленной сети
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30_000);
-      let res: Response;
-      try {
-        res = await fetch("https://api.fontsource.org/v1/fonts?type=google", {
-          signal: controller.signal,
-        });
-      } finally {
-        clearTimeout(timeoutId);
-      }
-      if (!res.ok) throw new Error(`Fontsource API: ${res.status}`);
-      const raw = (await res.json()) as Array<{
-        family: string;
-        category: string;
-        weights: number[];
-        subsets: string[];
-      }>;
-
-      const fonts: GoogleFont[] = raw.map((f) => ({
-        family: f.family,
-        category: (["sans-serif", "serif", "display", "monospace", "handwriting"].includes(
-          f.category,
-        )
-          ? f.category
-          : "sans-serif") as GoogleFont["category"],
-        weights: f.weights.length > 0 ? f.weights : [400],
-        cyrillic: f.subsets.includes("cyrillic"),
-      }));
-
+      const fonts = await fetchFromBundled().catch(() => fetchFromFontsource());
       memoryCache = fonts;
       if (typeof window !== "undefined") {
         try {
@@ -208,6 +187,49 @@ export async function fetchAllFonts(): Promise<GoogleFont[]> {
     }
   })();
   return inFlight;
+}
+
+/** Same-origin: загружаем bundled-каталог. JSON уже в нашей shape — без map. */
+async function fetchFromBundled(): Promise<GoogleFont[]> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const res = await fetch("/google-fonts.json", { signal: controller.signal });
+    if (!res.ok) throw new Error(`bundled catalog: ${res.status}`);
+    return (await res.json()) as GoogleFont[];
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/** Внешний API — fallback если bundled недоступен. */
+async function fetchFromFontsource(): Promise<GoogleFont[]> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30_000);
+  try {
+    const res = await fetch("https://api.fontsource.org/v1/fonts?type=google", {
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`Fontsource API: ${res.status}`);
+    const raw = (await res.json()) as Array<{
+      family: string;
+      category: string;
+      weights: number[];
+      subsets: string[];
+    }>;
+    return raw.map((f) => ({
+      family: f.family,
+      category: (["sans-serif", "serif", "display", "monospace", "handwriting"].includes(
+        f.category,
+      )
+        ? f.category
+        : "sans-serif") as GoogleFont["category"],
+      weights: f.weights.length > 0 ? f.weights : [400],
+      cyrillic: f.subsets.includes("cyrillic"),
+    }));
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 /** Динамически добавить <link> на Google Fonts CSS для выбранного шрифта. */
