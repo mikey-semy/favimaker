@@ -95,3 +95,5 @@
 - [x] VOID-20 — WCAG contrast badge · merged 2026-05-26 · #5
 - [x] VOID-21 — Eyedropper в ColorInput · merged 2026-05-26 · #6
 - [x] VOID-25 — Pin/unpin записей истории · merged 2026-05-26 · #7
+- [x] VOID-28 — Next.js app/icon.tsx + apple-icon.tsx snippets · merged 2026-05-26 · #9
+- [x] VOID-24 — Keyboard shortcuts (Ctrl+S, ?) · merged 2026-05-26 · #10
