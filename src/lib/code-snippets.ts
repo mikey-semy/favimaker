@@ -6,16 +6,32 @@
  * исполняется на build-time → favicon встроен в сборку без необходимости
  * класть статические PNG в /public.
  *
- * Мы транслируем FaviconConfig → JSX с inline-style. Шрифты Google Fonts
- * не подгружаются — ImageResponse работает в Edge runtime без CSS, поэтому
- * для красивого результата с custom шрифтом юзеру нужно докачать ttf
- * через `next/og`'s `fonts` опцию. Базовый вариант полагается на
- * системный sans-serif (как и SVG favicon).
+ * Транслируем FaviconConfig → JSX с inline-style. Все «процентные»
+ * параметры из FaviconConfig (font-size, stroke, shadow, border) конвертим
+ * в **px** относительно `size` — ImageResponse рендерится на фиксированном
+ * canvas, а CSS `%` для большинства этих свойств невалиден (border-width,
+ * text-shadow, WebkitTextStroke length units).
+ *
+ * Шрифты Google Fonts не подгружаются — ImageResponse Edge-runtime не
+ * имеет доступа к веб-CSS. Эмитим fallback на sans-serif + TODO-коммент
+ * о next/og's `fonts` опции.
  */
-import type { FaviconConfig } from "./types";
+import type { FaviconConfig, GradientDirection } from "./types";
 
-/** Преобразовать FaviconConfig в CSS-стили обёртки (background + shape). */
-function wrapperStyle(config: FaviconConfig): string {
+/** to-XX → CSS angle/direction для linear-gradient. */
+const GRAD_DIR_MAP: Record<Exclude<GradientDirection, "radial">, string> = {
+  "to-r": "to right",
+  "to-l": "to left",
+  "to-t": "to top",
+  "to-b": "to bottom",
+  "to-tr": "to top right",
+  "to-tl": "to top left",
+  "to-br": "to bottom right",
+  "to-bl": "to bottom left",
+};
+
+/** Преобразовать FaviconConfig в CSS-стили обёртки (background + shape + border). */
+function wrapperStyle(config: FaviconConfig, size: number): string {
   const parts: string[] = [
     `width: '100%'`,
     `height: '100%'`,
@@ -29,15 +45,13 @@ function wrapperStyle(config: FaviconConfig): string {
     parts.push(`background: '${config.bgColor}'`);
   } else if (config.bgMode === "gradient") {
     const { from, to, direction } = config.bgGradient;
-    const cssDir = direction === "radial"
-      ? `circle`
-      : direction.replace("to-", "to ").replace("r", "right").replace("l", "left").replace("t", "top").replace("b", "bottom");
-    const grad = direction === "radial"
-      ? `radial-gradient(circle, ${from}, ${to})`
-      : `linear-gradient(${cssDir}, ${from}, ${to})`;
+    const grad =
+      direction === "radial"
+        ? `radial-gradient(circle, ${from}, ${to})`
+        : `linear-gradient(${GRAD_DIR_MAP[direction]}, ${from}, ${to})`;
     parts.push(`background: '${grad}'`);
   }
-  // transparent → background не задаём, default = none
+  // transparent → background не задаём (default = none)
 
   // shape via borderRadius
   if (config.shape === "circle") {
@@ -46,34 +60,36 @@ function wrapperStyle(config: FaviconConfig): string {
     parts.push(`borderRadius: '${config.borderRadiusPct}%'`);
   }
 
-  // border
+  // border — % → px по `size`
   if (config.borderWidth > 0) {
-    parts.push(`border: '${config.borderWidth}% solid ${config.borderColor}'`);
+    const borderPx = Math.max(1, Math.round((config.borderWidth / 100) * size));
+    parts.push(`border: '${borderPx}px solid ${config.borderColor}'`);
   }
 
   return `{ ${parts.join(", ")} }`;
 }
 
-/** Стили самого текста/иконки внутри обёртки. */
-function contentStyle(config: FaviconConfig): string {
+/** Стили самого текста/иконки. % → px по `size`. */
+function contentStyle(config: FaviconConfig, size: number): string {
+  const fontPx = Math.max(1, Math.round((config.fontSizePct / 100) * size));
   const parts: string[] = [
-    `fontSize: '${config.fontSizePct}%'`,
+    `fontSize: ${fontPx}`,
     `fontWeight: ${config.fontWeight}`,
     `color: '${config.textColor}'`,
-    `fontFamily: '${config.fontFamily.replace(/'/g, "\\'")}, sans-serif'`,
+    // Google Fonts недоступны в Edge-runtime ImageResponse без явной
+    // загрузки через next/og's `fonts` опцию. Дефолт на системный sans-serif.
+    `fontFamily: 'sans-serif'`,
     `letterSpacing: '${config.letterSpacing}em'`,
     `lineHeight: 1`,
-    `textAlign: 'center'`,
   ];
   if (config.textStrokeWidth > 0 && config.textStrokeColor) {
-    parts.push(
-      `WebkitTextStroke: '${config.textStrokeWidth}% ${config.textStrokeColor}'`,
-    );
+    const strokePx = Math.max(1, Math.round((config.textStrokeWidth / 100) * size));
+    parts.push(`WebkitTextStroke: '${strokePx}px ${config.textStrokeColor}'`);
   }
   if (config.shadow) {
-    parts.push(
-      `textShadow: '0 ${config.shadowOffsetY}% ${config.shadowBlur}% ${config.shadowColor}'`,
-    );
+    const offY = Math.round((config.shadowOffsetY / 100) * size);
+    const blurPx = Math.round((config.shadowBlur / 100) * size);
+    parts.push(`textShadow: '0 ${offY}px ${blurPx}px ${config.shadowColor}'`);
   }
   return `{ ${parts.join(", ")} }`;
 }
@@ -84,16 +100,23 @@ function escapeJsxString(s: string): string {
 }
 
 /** Содержимое (текст / эмодзи / имя иконки) для inner JSX. */
-function contentJsx(config: FaviconConfig): string {
+function contentJsx(config: FaviconConfig, size: number): string {
   if (config.source === "icon") {
-    return `<span>{/* TODO: импортируйте lucide-react и подставьте: */}\n        {/* <${config.iconName} size="100%" color="${config.textColor}" strokeWidth={${config.iconStrokeWidth}} /> */}\n        ?</span>`;
+    return `<span>{/* TODO: импортируйте lucide-react и подставьте: */}
+        {/* <${config.iconName} size={${Math.round(size * 0.8)}} color="${config.textColor}" strokeWidth={${config.iconStrokeWidth}} /> */}
+        ?</span>`;
   }
   if (config.source === "image") {
-    return `<span>{/* TODO: для source=image используйте обычный PNG в /public */}\n        ?</span>`;
+    return `<span>{/* TODO: для source=image используйте обычный PNG в /public */}
+        ?</span>`;
   }
   const value = config.source === "emoji" ? config.emoji : config.text;
-  return `<span style={${contentStyle(config)}}>${escapeJsxString(value)}</span>`;
+  return `<span style={${contentStyle(config, size)}}>${escapeJsxString(value)}</span>`;
 }
+
+/** Хедер-комментарий с подсказкой про шрифты. */
+const FONT_TIP_RU =
+  "// NOTE: Google Fonts не подгружены автоматически. Если нужен ваш\n// шрифт — передайте его через `fonts` опцию ImageResponse:\n//   import { readFile } from 'fs/promises'\n//   const fontData = await readFile('./fonts/MyFont.ttf')\n//   return new ImageResponse(<...>, { ...size, fonts: [{ name: 'MyFont', data: fontData, weight: 700 }] })\n";
 
 /**
  * Генерирует код `app/icon.tsx` под текущий конфиг.
@@ -106,12 +129,13 @@ export function buildNextJsIconSnippet(config: FaviconConfig, size = 32): string
 export const size = { width: ${size}, height: ${size} }
 export const contentType = 'image/png'
 
-// Image generation — генерируется на build-time, кладётся в .next/static
+${FONT_TIP_RU}
+// Image generation — Next.js 13+ build-time favicon
 export default function Icon() {
   return new ImageResponse(
     (
-      <div style={${wrapperStyle(config)}}>
-        ${contentJsx(config)}
+      <div style={${wrapperStyle(config, size)}}>
+        ${contentJsx(config, size)}
       </div>
     ),
     { ...size },
@@ -122,8 +146,6 @@ export default function Icon() {
 
 /** Apple touch icon — 180×180 для iOS home-screen. */
 export function buildNextJsAppleIconSnippet(config: FaviconConfig): string {
-  // Same generator, just different size and filename hint
   const body = buildNextJsIconSnippet(config, 180);
-  // Replace `export default function Icon` with `AppleIcon` для семантики
   return body.replace("export default function Icon()", "export default function AppleIcon()");
 }
