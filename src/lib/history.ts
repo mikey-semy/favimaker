@@ -72,11 +72,15 @@ export const useHistory = create<HistoryStore>()(
         }),
       remove: (id) => set((s) => ({ entries: s.entries.filter((e) => e.id !== id) })),
       togglePin: (id) =>
-        set((s) => ({
-          entries: s.entries.map((e) =>
+        set((s) => {
+          // После unpin'а уже хранящейся записи общее число unpinned может
+          // превысить MAX_UNPINNED — нужен повторный trim. Pin никогда лимит
+          // не нарушает, но дешевле пройти trim единообразно в обоих случаях.
+          const next = s.entries.map((e) =>
             e.id === id ? { ...e, pinned: !e.pinned } : e,
-          ),
-        })),
+          );
+          return { entries: trimEntries(next) };
+        }),
       // clear оставляем как «снести всё, включая pinned» — соответствует тексту
       // кнопки «Очистить всю историю». Если юзер хочет сохранить pinned —
       // можно открепить вручную.
