@@ -112,6 +112,10 @@ const dict = {
     en: "Select at least one file",
   },
   "inc.svg": { ru: "favicon.svg (vector)", en: "favicon.svg (vector)" },
+  "inc.safariPinnedTab": {
+    ru: "safari-pinned-tab.svg",
+    en: "safari-pinned-tab.svg",
+  },
   "inc.svgUnavailable": {
     ru: "SVG не генерируется для источника «Картинка»",
     en: "SVG is not generated for image source",

@@ -33,16 +33,16 @@ export const useExportInclude = create<IncludeStore>()(
     }),
     {
       name: "favimaker.export-include.v1",
-      version: 2,
-      // v1 → v2: добавлен ключ `svg`. У старых юзеров его нет — мержим
-      // дефолты поверх сохранённого include, чтобы новый ключ оказался true.
-      migrate: (persisted: unknown, version) => {
+      version: 3,
+      // Защита от регрессий: всегда мержим DEFAULT_INCLUDE поверх сохранённого.
+      // Это значит каждый новый ключ автоматически появится со значением true
+      // у старых юзеров — независимо от того до какой версии они доехали.
+      // Bump version нужен только чтобы persist понимал что schema поменялась.
+      // v1 → v2: добавлен `svg`. v2 → v3: добавлен `safariPinnedTab`.
+      migrate: (persisted: unknown) => {
         const state = persisted as { include?: Partial<ExportInclude> } | undefined;
-        if (!state) return { include: DEFAULT_INCLUDE };
-        if (version < 2) {
-          return { include: { ...DEFAULT_INCLUDE, ...(state.include ?? {}) } };
-        }
-        return state;
+        if (!state?.include) return { include: DEFAULT_INCLUDE };
+        return { include: { ...DEFAULT_INCLUDE, ...state.include } };
       },
     },
   ),

@@ -79,6 +79,9 @@ export function buildBrowserConfig(config: FaviconConfig): string {
  */
 export type SnippetInclude = {
   svg?: boolean;
+  safariPinnedTab?: boolean;
+  /** Цвет для атрибута `color=` на <link rel="mask-icon"> (Safari pinned-tab). */
+  safariPinnedTabColor?: string;
   ico?: boolean;
   pngBrowser?: boolean;
   apple?: boolean;
@@ -87,7 +90,7 @@ export type SnippetInclude = {
 };
 
 export function buildHtmlSnippet(include: SnippetInclude = {}): string {
-  // Дефолт = всё включено (для старых вызовов без аргумента)
+  // Дефолт для bool-флагов = true (для старых вызовов без аргумента — full snippet)
   const flag = (key: keyof SnippetInclude) => include[key] !== false;
   const lines: string[] = ["<!-- Сгенерировано favimaker. Положите все файлы в /public корня сайта. -->"];
 
@@ -100,6 +103,10 @@ export function buildHtmlSnippet(include: SnippetInclude = {}): string {
     lines.push(`<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">`);
   }
   if (flag("apple")) lines.push(`<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">`);
+  if (flag("safariPinnedTab")) {
+    const color = include.safariPinnedTabColor ?? "#000000";
+    lines.push(`<link rel="mask-icon" href="/safari-pinned-tab.svg" color="${color}">`);
+  }
   if (flag("manifest")) lines.push(`<link rel="manifest" href="/site.webmanifest">`);
   if (flag("browserconfig")) lines.push(`<meta name="msapplication-config" content="/browserconfig.xml">`);
 
