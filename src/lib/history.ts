@@ -41,6 +41,7 @@ type HistoryStore = {
   add: (entry: Omit<HistoryEntry, "id" | "createdAt">) => void;
   remove: (id: string) => void;
   togglePin: (id: string) => void;
+  rename: (id: string, newName: string) => void;
   clear: () => void;
 };
 
@@ -80,6 +81,17 @@ export const useHistory = create<HistoryStore>()(
             e.id === id ? { ...e, pinned: !e.pinned } : e,
           );
           return { entries: trimEntries(next) };
+        }),
+      rename: (id, newName) =>
+        set((s) => {
+          // Пустое имя → возвращаем дефолт "Site" (для consistency с add()
+          // который тоже подставляет "Site" если appName пустой).
+          const cleaned = newName.trim() || "Site";
+          return {
+            entries: s.entries.map((e) =>
+              e.id === id ? { ...e, appName: cleaned } : e,
+            ),
+          };
         }),
       // clear оставляем как «снести всё, включая pinned» — соответствует тексту
       // кнопки «Очистить всю историю». Если юзер хочет сохранить pinned —
