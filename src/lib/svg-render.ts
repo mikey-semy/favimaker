@@ -157,6 +157,22 @@ async function renderIconSvg(config: FaviconConfig): Promise<string> {
   return `<g transform="translate(${padding} ${padding})">${iconMarkup}</g>`;
 }
 
+/**
+ * SVG-эквивалент canvas shadow: feDropShadow. Тень применяется только к
+ * контенту (text/icon), как в renderer.ts. stdDeviation ≈ canvas shadowBlur / 2
+ * (Chromium reference) — даёт визуальный match с canvas-превью.
+ * Расширенный filter region чтобы тень не обрезалась filter-боксом.
+ */
+function shadowFilter(config: FaviconConfig): { defs: string; filterAttr: string } {
+  if (!config.shadow) return { defs: "", filterAttr: "" };
+  const blur = (config.shadowBlur / 100) * SIZE;
+  const dy = (config.shadowOffsetY / 100) * SIZE;
+  return {
+    defs: `<filter id="fmshadow" x="-25%" y="-25%" width="150%" height="150%"><feDropShadow dx="0" dy="${dy.toFixed(2)}" stdDeviation="${(blur / 2).toFixed(2)}" flood-color="${config.shadowColor}"/></filter>`,
+    filterAttr: ` filter="url(#fmshadow)"`,
+  };
+}
+
 function renderBorder(config: FaviconConfig): string {
   if (!config.borderWidth) return "";
   const w = (config.borderWidth / 100) * SIZE;
@@ -177,12 +193,17 @@ export async function renderToSvgString(config: FaviconConfig): Promise<string |
 
   const { defs: bgDefs, fill: bgFill } = backgroundDefs(config);
   const { clipDefs, clipAttr } = shapeClip(config);
+  const { defs: shadowDefs, filterAttr: shadowAttr } = shadowFilter(config);
 
   const bgEl = shapeBgRect(config, bgFill);
-  const content =
+  const rawContent =
     config.source === "icon" ? await renderIconSvg(config) : renderTextSvg(config);
+  // Тень оборачиваем только содержимое (text/icon), чтобы не давать её
+  // фону — как в canvas-рендере. Если shadow off — обёртка не нужна.
+  const content = shadowAttr ? `<g${shadowAttr}>${rawContent}</g>` : rawContent;
   const border = renderBorder(config);
 
-  const defsBlock = bgDefs || clipDefs ? `<defs>${bgDefs}${clipDefs}</defs>` : "";
+  const allDefs = bgDefs + clipDefs + shadowDefs;
+  const defsBlock = allDefs ? `<defs>${allDefs}</defs>` : "";
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SIZE} ${SIZE}">${defsBlock}<g${clipAttr}>${bgEl}${content}</g>${border}</svg>`;
 }
