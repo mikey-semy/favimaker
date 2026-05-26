@@ -5,6 +5,7 @@ import { ImageIcon, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useConfig } from "@/lib/store";
 import { useT } from "@/lib/i18n";
+import { readImageAsDataUrl } from "@/lib/image-load";
 
 /**
  * Drag-n-drop загрузка картинки. Использует нативные HTML5 DnD-эвенты —
@@ -17,16 +18,12 @@ export function DropZone() {
   const [dragging, setDragging] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleFile = (file: File) => {
-    if (!file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        set("imageDataUrl", reader.result);
-        set("source", "image");
-      }
-    };
-    reader.readAsDataURL(file);
+  const handleFile = async (file: File) => {
+    const result = await readImageAsDataUrl(file);
+    if (result.ok) {
+      set("imageDataUrl", result.dataUrl);
+      set("source", "image");
+    }
   };
 
   const onDrop = (e: React.DragEvent) => {
