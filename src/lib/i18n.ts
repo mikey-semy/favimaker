@@ -149,6 +149,10 @@ const dict = {
   "inc.ico": { ru: "favicon.ico (16+32+48)", en: "favicon.ico (16+32+48)" },
   "inc.pngBrowser": { ru: "Browser PNG (16, 32, 96)", en: "Browser PNG (16, 32, 96)" },
   "inc.apple": { ru: "Apple Touch Icon (180)", en: "Apple Touch Icon (180)" },
+  "inc.appleVariants": {
+    ru: "Apple Touch варианты (120, 152, 167)",
+    en: "Apple Touch variants (120, 152, 167)",
+  },
   "inc.android": { ru: "Android Chrome (192, 512)", en: "Android Chrome (192, 512)" },
   "inc.maskable": { ru: "Maskable (192, 512)", en: "Maskable (192, 512)" },
   "inc.mstile": { ru: "Windows Tile (150)", en: "Windows Tile (150)" },

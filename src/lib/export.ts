@@ -14,6 +14,10 @@ export type ExportInclude = {
   ico: boolean;
   pngBrowser: boolean;
   apple: boolean;
+  /** Apple touch icon доп. размеры (120/152/167). Off по умолчанию —
+   *  Apple HIG, 180×180 покрывает большинство кейсов; эти варианты — для
+   *  точного соответствия конкретным устройствам (iPhone @2x, iPad, iPad Pro). */
+  appleVariants: boolean;
   android: boolean;
   maskable: boolean;
   mstile: boolean;
@@ -29,6 +33,7 @@ export const DEFAULT_INCLUDE: ExportInclude = {
   ico: true,
   pngBrowser: true,
   apple: true,
+  appleVariants: false,
   android: true,
   maskable: true,
   mstile: true,
@@ -45,6 +50,7 @@ export const INCLUDE_FILE_COUNTS: Record<keyof ExportInclude, number> = {
   ico: 1,
   pngBrowser: 3,
   apple: 1,
+  appleVariants: 3,
   android: 2,
   maskable: 2,
   mstile: 1,
@@ -58,6 +64,13 @@ const BROWSER_PNG = { "favicon-16x16.png": 16, "favicon-32x32.png": 32, "favicon
 const ANDROID_PNG = {
   "android-chrome-192x192.png": 192,
   "android-chrome-512x512.png": 512,
+} as const;
+
+/** Apple touch icon доп. размеры — iPhone @2x (120), iPad (152), iPad Pro (167). */
+const APPLE_VARIANTS = {
+  "apple-touch-icon-120x120.png": 120,
+  "apple-touch-icon-152x152.png": 152,
+  "apple-touch-icon-167x167.png": 167,
 } as const;
 
 /** Размеры что вшиваются в один .ico-файл — Vista+ принимает PNG-payload. */
@@ -87,6 +100,9 @@ function buildReadmeText(locale: "ru" | "en"): string {
       "  favicon-32x32.png                        — browser tab (retina)",
       "  favicon-96x96.png                        — legacy Chrome / Android",
       "  apple-touch-icon.png (180x180)           — iOS / macOS Safari home screen",
+      "  apple-touch-icon-120x120.png             — iPhone @2x (opt-in)",
+      "  apple-touch-icon-152x152.png             — iPad (opt-in)",
+      "  apple-touch-icon-167x167.png             — iPad Pro (opt-in)",
       "  android-chrome-192x192.png               — Android Chrome (standard)",
       "  android-chrome-512x512.png               — Android Chrome (large) + PWA splash",
       "  android-chrome-maskable-192x192.png      — Android launcher with mask (safe zone)",
@@ -114,6 +130,9 @@ function buildReadmeText(locale: "ru" | "en"): string {
     "  favicon-32x32.png                        — браузерная вкладка retina",
     "  favicon-96x96.png                        — legacy Chrome / Android",
     "  apple-touch-icon.png (180x180)           — iOS / macOS Safari home screen",
+    "  apple-touch-icon-120x120.png             — iPhone @2x (opt-in)",
+    "  apple-touch-icon-152x152.png             — iPad (opt-in)",
+    "  apple-touch-icon-167x167.png             — iPad Pro (opt-in)",
     "  android-chrome-192x192.png               — Android Chrome (стандарт)",
     "  android-chrome-512x512.png               — Android Chrome (large) + PWA splash",
     "  android-chrome-maskable-192x192.png      — Android-launcher с обрезкой (safe zone)",
@@ -168,6 +187,11 @@ export async function buildFaviconZip(
   }
   if (include.apple) {
     pngTasks.push(renderToPngBlob(180, config).then((b) => ["apple-touch-icon.png", b] as const));
+  }
+  if (include.appleVariants) {
+    for (const [fn, size] of Object.entries(APPLE_VARIANTS)) {
+      pngTasks.push(renderToPngBlob(size, config).then((b) => [fn, b] as const));
+    }
   }
   if (include.android) {
     for (const [fn, size] of Object.entries(ANDROID_PNG)) {
@@ -235,6 +259,7 @@ export async function buildFaviconZip(
         ico: include.ico,
         pngBrowser: include.pngBrowser,
         apple: include.apple,
+        appleVariants: include.appleVariants,
         manifest: include.manifest,
         browserconfig: include.browserconfig,
       }),
