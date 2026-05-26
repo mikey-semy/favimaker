@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Download, Pin, PinOff, RotateCcw, Trash2 } from "lucide-react";
+import { Download, FileDown, FileUp, Pin, PinOff, RotateCcw, Trash2 } from "lucide-react";
 import { useConfig } from "@/lib/store";
 import { useHistory, type HistoryEntry } from "@/lib/history";
 import { buildFaviconZip, downloadBlob } from "@/lib/export";
@@ -16,7 +16,9 @@ export function HistoryPanel() {
   const remove = useHistory((s) => s.remove);
   const togglePin = useHistory((s) => s.togglePin);
   const rename = useHistory((s) => s.rename);
+  const importJson = useHistory((s) => s.importJson);
   const clear = useHistory((s) => s.clear);
+  const importInputRef = React.useRef<HTMLInputElement>(null);
   const replace = useConfig((s) => s.replace);
   const include = useExportInclude((s) => s.include);
   const locale = useLocale((s) => s.locale);
@@ -34,6 +36,28 @@ export function HistoryPanel() {
   const handleRedownload = async (entry: HistoryEntry) => {
     const blob = await buildFaviconZip(entry.config, entry.appName, locale, include);
     downloadBlob(blob, `favicon-${(entry.appName || "site").toLowerCase()}.zip`);
+  };
+
+  const handleExport = () => {
+    if (entries.length === 0) return;
+    const json = JSON.stringify(entries, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    downloadBlob(blob, `favimaker-history-${new Date().toISOString().slice(0, 10)}.json`);
+    toast.success(t("history.exportedToast"));
+  };
+
+  const handleImportFile = async (file: File) => {
+    const text = await file.text();
+    const added = importJson(text, "merge");
+    if (added === null) {
+      toast.error(t("history.importBadJson"));
+      return;
+    }
+    if (added === 0) {
+      toast.info(t("history.importNothingNew"));
+      return;
+    }
+    toast.success(t("history.importedToast").replace("{n}", String(added)));
   };
 
   const handleClear = () => {
@@ -65,9 +89,19 @@ export function HistoryPanel() {
 
   if (entries.length === 0) {
     return (
-      <p className="text-[11px] text-muted leading-relaxed" suppressHydrationWarning>
-        {t("history.empty")}
-      </p>
+      <div className="space-y-2">
+        <p
+          className="text-[11px] text-muted leading-relaxed"
+          suppressHydrationWarning
+        >
+          {t("history.empty")}
+        </p>
+        <ImportButton
+          onClick={() => importInputRef.current?.click()}
+          label={t("history.import")}
+        />
+        <ImportFileInput inputRef={importInputRef} onPicked={handleImportFile} />
+      </div>
     );
   }
 
@@ -87,6 +121,28 @@ export function HistoryPanel() {
         ))}
       </ul>
 
+      <div className="flex gap-1.5">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleExport}
+          className="flex-1"
+          title={t("history.exportHint")}
+        >
+          <FileDown className="size-3.5" />
+          <span suppressHydrationWarning>{t("history.export")}</span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => importInputRef.current?.click()}
+          className="flex-1"
+          title={t("history.importHint")}
+        >
+          <FileUp className="size-3.5" />
+          <span suppressHydrationWarning>{t("history.import")}</span>
+        </Button>
+      </div>
       <Button
         variant="ghost"
         size="sm"
@@ -101,7 +157,44 @@ export function HistoryPanel() {
           {confirmArmed ? t("history.confirmClear") : t("history.clearAll")}
         </span>
       </Button>
+      <ImportFileInput inputRef={importInputRef} onPicked={handleImportFile} />
     </div>
+  );
+}
+
+function ImportButton({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-xs text-ink-2 hover:text-ink hover:bg-surface-2 rounded-[var(--r-md)] border border-line transition-colors cursor-pointer"
+    >
+      <FileUp className="size-3.5" />
+      <span suppressHydrationWarning>{label}</span>
+    </button>
+  );
+}
+
+function ImportFileInput({
+  inputRef,
+  onPicked,
+}: {
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onPicked: (file: File) => void;
+}) {
+  return (
+    <input
+      ref={inputRef}
+      type="file"
+      accept="application/json,.json"
+      className="hidden"
+      onChange={(e) => {
+        const f = e.target.files?.[0];
+        if (f) onPicked(f);
+        // Reset чтобы повторный выбор того же файла триггерил change
+        e.target.value = "";
+      }}
+    />
   );
 }
 

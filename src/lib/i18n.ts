@@ -237,6 +237,32 @@ const dict = {
     ru: "Двойной клик чтобы переименовать",
     en: "Double-click to rename",
   },
+  "history.export": { ru: "Экспорт", en: "Export" },
+  "history.import": { ru: "Импорт", en: "Import" },
+  "history.exportHint": {
+    ru: "Скачать историю как JSON-файл",
+    en: "Download history as JSON file",
+  },
+  "history.importHint": {
+    ru: "Загрузить историю из JSON-файла (merge с текущей)",
+    en: "Load history from JSON file (merge with current)",
+  },
+  "history.exportedToast": {
+    ru: "История экспортирована",
+    en: "History exported",
+  },
+  "history.importedToast": {
+    ru: "Импортировано записей: {n}",
+    en: "Imported {n} entries",
+  },
+  "history.importNothingNew": {
+    ru: "Нет новых записей для импорта",
+    en: "Nothing new to import",
+  },
+  "history.importBadJson": {
+    ru: "Невалидный JSON или формат истории",
+    en: "Invalid JSON or history format",
+  },
   "history.delete": { ru: "Удалить", en: "Delete" },
   "history.clearAll": { ru: "Очистить", en: "Clear" },
   "history.confirmClear": {

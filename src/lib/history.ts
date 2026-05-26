@@ -42,8 +42,25 @@ type HistoryStore = {
   remove: (id: string) => void;
   togglePin: (id: string) => void;
   rename: (id: string, newName: string) => void;
+  /** Импорт записей из JSON. mode=merge сохраняет старые + добавляет новые
+   *  (дедуп по id). mode=replace полностью заменяет entries. Возвращает
+   *  количество фактически добавленных записей или null если JSON битый. */
+  importJson: (json: string, mode: "merge" | "replace") => number | null;
   clear: () => void;
 };
+
+/** Минимальная runtime-валидация для импорта — структура HistoryEntry. */
+function isValidEntry(x: unknown): x is HistoryEntry {
+  if (!x || typeof x !== "object") return false;
+  const o = x as Record<string, unknown>;
+  return (
+    typeof o.id === "string" &&
+    typeof o.createdAt === "number" &&
+    typeof o.appName === "string" &&
+    typeof o.thumbDataUrl === "string" &&
+    !!o.config && typeof o.config === "object"
+  );
+}
 
 export const useHistory = create<HistoryStore>()(
   persist(
@@ -93,6 +110,39 @@ export const useHistory = create<HistoryStore>()(
             ),
           };
         }),
+      importJson: (json, mode) => {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(json);
+        } catch {
+          return null;
+        }
+        // Поддерживаем два формата: голый массив [...] или объект { entries: [...] }
+        // (на случай если кто-то экспортнёт всё state как есть).
+        const arr = Array.isArray(parsed)
+          ? parsed
+          : Array.isArray((parsed as { entries?: unknown })?.entries)
+            ? (parsed as { entries: unknown[] }).entries
+            : null;
+        if (!arr) return null;
+        const valid = arr.filter(isValidEntry);
+        if (valid.length === 0) return 0;
+
+        let added = 0;
+        set((s) => {
+          if (mode === "replace") {
+            added = valid.length;
+            return { entries: trimEntries(valid) };
+          }
+          // merge: добавляем только записи с новым id
+          const existingIds = new Set(s.entries.map((e) => e.id));
+          const fresh = valid.filter((e) => !existingIds.has(e.id));
+          added = fresh.length;
+          // Свежие импортированные сверху — как будто только что добавлены
+          return { entries: trimEntries([...fresh, ...s.entries]) };
+        });
+        return added;
+      },
       // clear оставляем как «снести всё, включая pinned» — соответствует тексту
       // кнопки «Очистить всю историю». Если юзер хочет сохранить pinned —
       // можно открепить вручную.
