@@ -149,6 +149,24 @@ const dict = {
   "grad.l": { ru: "← влево", en: "← left" },
   "grad.radial": { ru: "⊙ радиальный", en: "⊙ radial" },
 
+  // WCAG contrast badge
+  "contrast.aaa": {
+    ru: "Контраст {ratio}:1 — AAA, отличная читаемость",
+    en: "Contrast {ratio}:1 — AAA, excellent readability",
+  },
+  "contrast.aa": {
+    ru: "Контраст {ratio}:1 — AA, нормальная читаемость",
+    en: "Contrast {ratio}:1 — AA, good readability",
+  },
+  "contrast.aaLarge": {
+    ru: "Контраст {ratio}:1 — слабовато, для favicon желательно ≥4.5",
+    en: "Contrast {ratio}:1 — borderline, ≥4.5 recommended for favicons",
+  },
+  "contrast.fail": {
+    ru: "Контраст {ratio}:1 — низкий, иконка плохо читаема (нужно ≥4.5)",
+    en: "Contrast {ratio}:1 — too low, icon hard to read (need ≥4.5)",
+  },
+
   // misc
   "msg.shareCopied": { ru: "Ссылка скопирована", en: "Link copied" },
   "msg.shareFallback": {
