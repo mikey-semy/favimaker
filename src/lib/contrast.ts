@@ -66,10 +66,13 @@ export function classifyContrast(ratio: number): ContrastLevel {
  *   (худший случай — где будет хуже всего видно)
  * - transparent: null — фон зависит от хоста, judgement невозможен
  *
- * Для source=image тоже null — там фоном выступает картинка, не цвет.
+ * Null также для:
+ * - source=image: фоном выступает картинка, не цвет
+ * - source=emoji: textColor рендерером игнорируется (эмодзи рисуются
+ *   своими цветами через системный emoji-font), контраст судить не от чего
  */
 export function effectiveContrast(config: FaviconConfig): number | null {
-  if (config.source === "image") return null;
+  if (config.source === "image" || config.source === "emoji") return null;
   if (config.bgMode === "transparent") return null;
   const fg = config.textColor;
   if (config.bgMode === "solid") return contrastRatio(fg, config.bgColor);
