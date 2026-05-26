@@ -1,7 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { Pipette } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { toast } from "@/lib/toast";
+import { useT } from "@/lib/i18n";
 
 export function TextInput({
   className,
@@ -57,6 +60,18 @@ export function Select({
   );
 }
 
+/** Минимальный тип EyeDropper API (lib.dom его пока не покрывает). */
+type EyeDropperInstance = { open: () => Promise<{ sRGBHex: string }> };
+type EyeDropperCtor = new () => EyeDropperInstance;
+
+// useSyncExternalStore-snapshots для feature detection (см. ColorInput).
+// Объявлены модульно — стабильные ссылки между рендерами, иначе React
+// будет считать что external source изменился каждый раз.
+const EYEDROPPER_NOOP_SUBSCRIBE = () => () => {};
+const eyedropperClientSnapshot = (): boolean =>
+  typeof window !== "undefined" && "EyeDropper" in window;
+const eyedropperServerSnapshot = (): boolean => false;
+
 export function ColorInput({
   value,
   onChange,
@@ -66,6 +81,31 @@ export function ColorInput({
   onChange: (v: string) => void;
   className?: string;
 }) {
+  const t = useT();
+  // Feature-detect через useSyncExternalStore — официальный React-18+
+  // паттерн для browser API без hydration mismatch. Server snapshot всегда
+  // false, client snapshot — реальное наличие API. Subscribe пустой —
+  // поддержка не меняется в рантайме.
+  const eyedropperSupported = React.useSyncExternalStore(
+    EYEDROPPER_NOOP_SUBSCRIBE,
+    eyedropperClientSnapshot,
+    eyedropperServerSnapshot,
+  );
+
+  const handleEyedropper = async () => {
+    const Ctor = (window as unknown as { EyeDropper?: EyeDropperCtor }).EyeDropper;
+    if (!Ctor) return;
+    try {
+      const result = await new Ctor().open();
+      onChange(result.sRGBHex);
+    } catch (err) {
+      // Esc / отмена выбрасывает AbortError — это не ошибка, молчим.
+      // Любая другая — показываем toast.
+      const isAbort = err instanceof DOMException && err.name === "AbortError";
+      if (!isAbort) toast.error(t("color.eyedropperFailed"));
+    }
+  };
+
   return (
     <div
       className={cn(
@@ -94,6 +134,19 @@ export function ColorInput({
         spellCheck={false}
         className="flex-1 min-w-0 bg-transparent text-sm font-mono tabular-nums text-ink outline-none uppercase"
       />
+      {/* Eyedropper — только в Chromium-браузерах. На Firefox/Safari
+          API отсутствует → кнопка не рендерится. */}
+      {eyedropperSupported && (
+        <button
+          type="button"
+          onClick={handleEyedropper}
+          title={t("color.eyedropper")}
+          aria-label={t("color.eyedropper")}
+          className="shrink-0 flex items-center justify-center w-8 rounded-[var(--r-sm)] text-ink-2 hover:text-ink hover:bg-line/60 transition-colors cursor-pointer"
+        >
+          <Pipette className="size-3.5" />
+        </button>
+      )}
     </div>
   );
 }

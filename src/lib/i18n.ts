@@ -149,6 +149,16 @@ const dict = {
   "grad.l": { ru: "← влево", en: "← left" },
   "grad.radial": { ru: "⊙ радиальный", en: "⊙ radial" },
 
+  // color input
+  "color.eyedropper": {
+    ru: "Пипетка — взять цвет с экрана",
+    en: "Eyedropper — pick a color from screen",
+  },
+  "color.eyedropperFailed": {
+    ru: "Не удалось взять цвет",
+    en: "Failed to pick color",
+  },
+
   // misc
   "msg.shareCopied": { ru: "Ссылка скопирована", en: "Link copied" },
   "msg.shareFallback": {
