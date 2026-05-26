@@ -2,6 +2,7 @@
   "name": "favimaker",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "packageManager": "yarn@1.22.22",
   "scripts": {
     "dev": "next dev",
