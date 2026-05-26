@@ -11,6 +11,7 @@ import {
   loadGoogleFont,
   type GoogleFont,
 } from "@/lib/google-fonts";
+import { toast } from "@/lib/toast";
 import { TextInput } from "./inputs";
 import { Field } from "./Field";
 import { cn } from "@/lib/cn";
@@ -94,7 +95,9 @@ export function FontPicker() {
     fetchAllFonts()
       .then(setAllFonts)
       .catch(() => {
-        // нет сети — остаёмся на курируемом
+        // Bundled и Fontsource оба упали. Редко (bundled — same-origin
+        // statics), но если — юзер должен знать почему всё ещё ~90.
+        toast.error(t("fonts.loadFailed"));
       })
       .finally(() => setLoadingAll(false));
   };
