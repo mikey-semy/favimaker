@@ -8,6 +8,7 @@ import { ExportPanel } from "@/components/ExportPanel";
 import { HistoryPanel } from "@/components/HistoryPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LangToggle } from "@/components/LangToggle";
+import { UndoRedo } from "@/components/UndoRedo";
 import { useConfig } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 
@@ -46,6 +47,8 @@ export default function HomePage() {
             </div>
           </div>
           <div className="flex items-center gap-1">
+            <UndoRedo />
+            <div className="w-px h-5 bg-line mx-1" aria-hidden />
             <LangToggle />
             <ThemeToggle />
             <a
