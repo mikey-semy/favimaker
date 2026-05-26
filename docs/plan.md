@@ -97,3 +97,7 @@
 - [x] VOID-25 — Pin/unpin записей истории · merged 2026-05-26 · #7
 - [x] VOID-28 — Next.js app/icon.tsx + apple-icon.tsx snippets · merged 2026-05-26 · #9
 - [x] VOID-24 — Keyboard shortcuts (Ctrl+S, ?) · merged 2026-05-26 · #10
+- [x] VOID-23 — Drag&drop файла на канвас · merged 2026-05-26 · #12
+- [x] VOID-26 — Rename history entries (inline) · merged 2026-05-26 · #13
+- [x] VOID-27 — Import/export history JSON · merged 2026-05-26 · #14
+- [x] VOID-13 — Apple touch icon variants (120/152/167) · merged 2026-05-26 · #15
