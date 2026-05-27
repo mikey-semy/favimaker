@@ -79,22 +79,20 @@ function drawBackground(ctx: CanvasRenderingContext2D, size: number, config: Fav
   ctx.fillRect(0, 0, size, size);
 }
 
-/** Нарисовать содержимое (текст / эмодзи / картинка). */
+/** Нарисовать текст (text source only). Emoji теперь идёт через Twemoji
+ *  PNG/SVG в renderToCanvas — Canvas API + системный emoji-шрифт давал
+ *  пустые квадраты для emoji которых нет в локальной версии Segoe UI Emoji. */
 function drawContent(ctx: CanvasRenderingContext2D, size: number, config: FaviconConfig) {
   const padding = (config.paddingPct / 100) * size;
   const innerSize = size - padding * 2;
 
-  if (config.source === "image") {
-    // Картинки рисуются асинхронно через renderToCanvas, не здесь.
+  if (config.source === "image" || config.source === "emoji") {
+    // Рисуются асинхронно через renderToCanvas, не здесь.
     return;
   }
 
-  // Лайны: для emoji всегда одна (эмодзи не стэкаем), для текста — text + text2
-  // если text2 непустой, иначе одна.
-  const lines: string[] =
-    config.source === "emoji"
-      ? [config.emoji].filter(Boolean)
-      : [config.text, config.text2].filter((s) => s && s.length > 0);
+  // Текст: text + text2 если непустой
+  const lines: string[] = [config.text, config.text2].filter((s) => s && s.length > 0);
   if (lines.length === 0) return;
 
   // Авто-подгонка кегля. Для 2 линий шрифт ~ x0.55 (две строки влезают в ту
@@ -103,10 +101,7 @@ function drawContent(ctx: CanvasRenderingContext2D, size: number, config: Favico
   const baseFontSize = (config.fontSizePct / 100) * size;
   const lineFontSize = lines.length > 1 ? baseFontSize * 0.55 : baseFontSize;
 
-  const fontStack =
-    config.source === "emoji"
-      ? `"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`
-      : `"${config.fontFamily}", sans-serif`;
+  const fontStack = `"${config.fontFamily}", sans-serif`;
 
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
@@ -179,6 +174,57 @@ function drawBorder(ctx: CanvasRenderingContext2D, size: number, config: Favicon
   ctx.lineWidth = w;
   ctx.stroke();
   ctx.restore();
+}
+
+/**
+ * Конвертировать emoji string в Twemoji codepoint URL.
+ * Twemoji файлы названы по lowercase hex code points, joined через "-".
+ * Variation selector U+FE0F пропускаем кроме случаев когда это единственный
+ * suffix (Twemoji обычно хранит файлы БЕЗ FE0F).
+ */
+function emojiToTwemojiCodepoints(emoji: string): string {
+  const cps: number[] = [];
+  for (const ch of emoji) {
+    const cp = ch.codePointAt(0);
+    if (cp !== undefined) cps.push(cp);
+  }
+  // Twemoji: убрать FE0F (variation selector-16). Кроме случая одиночного
+  // символа (некоторые emoji без FE0F не имеют файла — но это редкость).
+  const filtered = cps.length > 1 ? cps.filter((cp) => cp !== 0xfe0f) : cps;
+  return filtered.map((cp) => cp.toString(16)).join("-");
+}
+
+/**
+ * Загрузить Twemoji SVG как HTMLImageElement. SVG масштабируется без потерь
+ * на любые размеры favicon (16/32/180/512). Twemoji v14 — последняя версия
+ * до архивации проекта, доступна на jsDelivr.
+ *
+ * Кэшируется (повторные рендеры одной и той же emoji не пересоздают Image).
+ * Cap 32 — обычно юзер крутит 1-3 emoji за сессию.
+ */
+const emojiImageCache = new Map<string, Promise<HTMLImageElement | null>>();
+function loadEmojiImage(emoji: string): Promise<HTMLImageElement | null> {
+  if (!emoji) return Promise.resolve(null);
+  const cached = emojiImageCache.get(emoji);
+  if (cached) return cached;
+
+  if (emojiImageCache.size > 32) {
+    const firstKey = emojiImageCache.keys().next().value;
+    if (firstKey) emojiImageCache.delete(firstKey);
+  }
+
+  const cp = emojiToTwemojiCodepoints(emoji);
+  const url = `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${cp}.svg`;
+
+  const p = new Promise<HTMLImageElement | null>((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null); // не валим рендер если CDN недоступен
+    img.src = url;
+  });
+  emojiImageCache.set(emoji, p);
+  return p;
 }
 
 /**
@@ -287,6 +333,28 @@ export async function renderToCanvas(
       ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
     } catch {
       // картинка не загрузилась — рендерим без неё
+    }
+  } else if (config.source === "emoji" && config.emoji) {
+    try {
+      const img = await loadEmojiImage(config.emoji);
+      if (img) {
+        const padding = (config.paddingPct / 100) * size;
+        const inner = size - padding * 2;
+        // Применяем shadow если включён — drawImage уважает ctx.shadow*
+        if (config.shadow) {
+          ctx.shadowColor = config.shadowColor;
+          ctx.shadowBlur = (config.shadowBlur / 100) * size;
+          ctx.shadowOffsetY = (config.shadowOffsetY / 100) * size;
+        }
+        ctx.drawImage(img, (size - inner) / 2, (size - inner) / 2, inner, inner);
+        if (config.shadow) {
+          ctx.shadowColor = "transparent";
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetY = 0;
+        }
+      }
+    } catch {
+      // emoji не загрузилась — пропускаем (на сетевые ошибки молчим)
     }
   } else if (config.source === "icon") {
     try {

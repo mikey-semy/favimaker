@@ -107,22 +107,16 @@ function measureTextWidth(
 }
 
 function renderTextSvg(config: FaviconConfig): string {
-  // Лайны: для emoji одна (эмодзи не стэкаем), для текста — text+text2 если 2-я непустая.
-  const lines: string[] =
-    config.source === "emoji"
-      ? [config.emoji].filter(Boolean)
-      : [config.text, config.text2].filter((s) => s && s.length > 0);
+  // Для emoji теперь отдельный path через Twemoji (renderEmojiSvg).
+  const lines: string[] = [config.text, config.text2].filter((s) => s && s.length > 0);
   if (lines.length === 0) return "";
 
   const padding = (config.paddingPct / 100) * SIZE;
   const inner = SIZE - padding * 2;
   const baseSize = (config.fontSizePct / 100) * SIZE;
   const lineFontSize = lines.length > 1 ? baseSize * 0.55 : baseSize;
-  const source = config.source === "emoji" ? "emoji" : "text";
-  const family =
-    source === "emoji"
-      ? `'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif`
-      : `'${config.fontFamily}',sans-serif`;
+  const source = "text" as const;
+  const family = `'${config.fontFamily}',sans-serif`;
   const stroke =
     config.textStrokeWidth > 0
       ? ` stroke="${config.textStrokeColor ?? "#000"}" stroke-width="${((config.textStrokeWidth / 100) * SIZE).toFixed(2)}" stroke-linejoin="round" paint-order="stroke fill"`
@@ -147,6 +141,57 @@ function renderTextSvg(config: FaviconConfig): string {
       return `<text x="50" y="${cy.toFixed(2)}" font-family="${escapeXml(family)}" font-weight="${config.fontWeight}" font-size="${finalSize.toFixed(2)}" letter-spacing="${config.letterSpacing}em" text-anchor="middle" dominant-baseline="central" fill="${config.textColor}"${stroke}>${escapeXml(text)}</text>`;
     })
     .join("");
+}
+
+/**
+ * Twemoji emoji-renderer. Fetch'аем SVG с jsDelivr и inline-им в нашу SVG
+ * через nested <svg> с x/y/width/height — это валидный SVG 1.1/2.
+ *
+ * Зачем не использовать font-based <text>? Системные emoji-шрифты
+ * (Segoe UI Emoji и т.п.) часто не имеют новых codepoint'ов → пустые
+ * квадраты. Twemoji даёт consistent цветной рендер на любой ОС и
+ * соответствует Twitter-стилю picker'а.
+ *
+ * Standalone SVG получает embedded inline glyph (без external dep) —
+ * ~5-15KB на emoji.
+ *
+ * Кэшируем — повторные рендеры одной и той же emoji не делают fetch.
+ */
+const emojiSvgCache = new Map<string, Promise<string>>();
+function emojiToTwemojiCp(emoji: string): string {
+  const cps: number[] = [];
+  for (const ch of emoji) {
+    const cp = ch.codePointAt(0);
+    if (cp !== undefined) cps.push(cp);
+  }
+  const filtered = cps.length > 1 ? cps.filter((cp) => cp !== 0xfe0f) : cps;
+  return filtered.map((cp) => cp.toString(16)).join("-");
+}
+async function renderEmojiSvg(config: FaviconConfig): Promise<string> {
+  if (!config.emoji) return "";
+  const padding = (config.paddingPct / 100) * SIZE;
+  const inner = SIZE - padding * 2;
+  const cp = emojiToTwemojiCp(config.emoji);
+  let p = emojiSvgCache.get(cp);
+  if (!p) {
+    p = fetch(`https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${cp}.svg`)
+      .then((r) => (r.ok ? r.text() : ""))
+      .catch(() => "");
+    if (emojiSvgCache.size > 32) {
+      const firstKey = emojiSvgCache.keys().next().value;
+      if (firstKey) emojiSvgCache.delete(firstKey);
+    }
+    emojiSvgCache.set(cp, p);
+  }
+  const svgText = await p;
+  if (!svgText) return "";
+  // Достаём viewBox + inner content. Twemoji SVG-ки = "<svg ... viewBox='0 0 36 36'>...</svg>".
+  const vbMatch = svgText.match(/viewBox=["']([^"']+)["']/i);
+  const innerMatch = svgText.match(/<svg[^>]*>([\s\S]*)<\/svg>/i);
+  if (!innerMatch) return "";
+  const viewBox = vbMatch?.[1] ?? "0 0 36 36";
+  // Nested <svg> со своим viewBox масштабируется под x/y/width/height родителя.
+  return `<svg x="${padding.toFixed(2)}" y="${padding.toFixed(2)}" width="${inner.toFixed(2)}" height="${inner.toFixed(2)}" viewBox="${escapeXml(viewBox)}">${innerMatch[1]}</svg>`;
 }
 
 /** Динамически загружаем lucide и react-dom/server — не тянем в bundle если не нужно. */
@@ -245,6 +290,8 @@ export async function renderToSvgString(config: FaviconConfig): Promise<string |
   let rawContent: string;
   if (config.source === "icon") {
     rawContent = await renderIconSvg(config);
+  } else if (config.source === "emoji") {
+    rawContent = await renderEmojiSvg(config);
   } else if (config.embedFontInSvg && config.source === "text") {
     const pathSvg = await renderTextSvgWithFontPath(config);
     rawContent = pathSvg ?? renderTextSvg(config);
