@@ -4,6 +4,7 @@ import JSZip from "jszip";
 import { encodeIco } from "./ico";
 import { buildBrowserConfig, buildHtmlSnippet, buildManifest } from "./manifest";
 import { renderToPngBlob } from "./renderer";
+import { renderOgImageToBlob } from "./og-renderer";
 import { renderToPinnedTabSvg, renderToSvgString } from "./svg-render";
 import type { FaviconConfig } from "./types";
 
@@ -21,6 +22,9 @@ export type ExportInclude = {
   android: boolean;
   maskable: boolean;
   mstile: boolean;
+  /** Open Graph image 1200×630 (Facebook/Twitter/LinkedIn/Telegram preview).
+   *  По умолчанию on — большинство сайтов хотят соц-превью. */
+  socialCard: boolean;
   manifest: boolean;
   browserconfig: boolean;
   htmlSnippet: boolean;
@@ -37,6 +41,7 @@ export const DEFAULT_INCLUDE: ExportInclude = {
   android: true,
   maskable: true,
   mstile: true,
+  socialCard: true,
   manifest: true,
   browserconfig: true,
   htmlSnippet: true,
@@ -54,6 +59,7 @@ export const INCLUDE_FILE_COUNTS: Record<keyof ExportInclude, number> = {
   android: 2,
   maskable: 2,
   mstile: 1,
+  socialCard: 1,
   manifest: 1,
   browserconfig: 1,
   htmlSnippet: 1,
@@ -109,6 +115,7 @@ function buildReadmeText(locale: "ru" | "en"): string {
       "  android-chrome-maskable-512x512.png      — same for large",
       "  mstile-150x150.png                       — Windows pinned tile",
       "  safari-pinned-tab.svg                    — Safari pinned tab (monochrome mask)",
+      "  og-image.png (1200x630)                  — Open Graph / Twitter card preview",
       "  site.webmanifest                         — PWA manifest (with maskable variants)",
       "  browserconfig.xml                        — Windows tiles config",
       "  README.html-snippet.html                 — ready <link> tags for <head>",
@@ -139,6 +146,7 @@ function buildReadmeText(locale: "ru" | "en"): string {
     "  android-chrome-maskable-512x512.png      — то же для large",
     "  mstile-150x150.png                       — Windows pinned tile",
     "  safari-pinned-tab.svg                    — Safari pinned tab (монохромная маска)",
+    "  og-image.png (1200x630)                  — Open Graph / Twitter card превью",
     "  site.webmanifest                         — PWA-манифест (с maskable-вариантами)",
     "  browserconfig.xml                        — config для Windows tiles",
     "  README.html-snippet.html                 — готовые <link> для <head>",
@@ -169,11 +177,19 @@ function toMaskableConfig(config: FaviconConfig): FaviconConfig {
  * Собрать ZIP со всем набором favicon-ассетов под текущий конфиг.
  * Возвращает Blob готовый для скачивания через FileSaver / URL.createObjectURL.
  */
+export type SocialMeta = {
+  /** Subtitle/description под title в OG-картинке + og:description в snippet. */
+  description?: string;
+  /** Canonical URL сайта — попадает в og:url meta. */
+  url?: string;
+};
+
 export async function buildFaviconZip(
   config: FaviconConfig,
   appName: string,
   locale: "ru" | "en" = "ru",
   include: ExportInclude = DEFAULT_INCLUDE,
+  social: SocialMeta = {},
 ): Promise<Blob> {
   const zip = new JSZip();
 
@@ -229,19 +245,29 @@ export async function buildFaviconZip(
     ? renderToPinnedTabSvg(config)
     : Promise.resolve(null);
 
-  const [pngBlobs, maskableBlobs, icoPngs, svgString, pinnedTabSvg] = await Promise.all([
-    Promise.all(pngTasks),
-    Promise.all(maskableTasks),
-    icoTask,
-    svgTask,
-    pinnedTabTask,
-  ]);
+  // OG-card: 1200×630 PNG. Если title (appName) пустой — не генерим
+  // карточку без хоть какого-то заголовка (выглядит ущербно).
+  const ogTask: Promise<Blob | null> =
+    include.socialCard && (appName || "").trim()
+      ? renderOgImageToBlob(config, appName || "Site", social.description ?? "")
+      : Promise.resolve(null);
+
+  const [pngBlobs, maskableBlobs, icoPngs, svgString, pinnedTabSvg, ogBlob] =
+    await Promise.all([
+      Promise.all(pngTasks),
+      Promise.all(maskableTasks),
+      icoTask,
+      svgTask,
+      pinnedTabTask,
+      ogTask,
+    ]);
 
   for (const [fn, blob] of pngBlobs) zip.file(fn, blob);
   for (const [fn, blob] of maskableBlobs) zip.file(fn, blob);
   if (icoPngs) zip.file("favicon.ico", encodeIco(icoPngs));
   if (svgString) zip.file("favicon.svg", svgString);
   if (pinnedTabSvg) zip.file("safari-pinned-tab.svg", pinnedTabSvg);
+  if (ogBlob) zip.file("og-image.png", ogBlob);
 
   if (include.manifest) {
     zip.file("site.webmanifest", buildManifest(config, appName || "Site"));
@@ -262,6 +288,10 @@ export async function buildFaviconZip(
         appleVariants: include.appleVariants,
         manifest: include.manifest,
         browserconfig: include.browserconfig,
+        socialCard: include.socialCard && !!ogBlob,
+        socialTitle: appName,
+        socialDescription: social.description,
+        socialUrl: social.url,
       }),
     );
   }

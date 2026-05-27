@@ -34,6 +34,7 @@ const GROUP_ORDER: (keyof ExportInclude)[] = [
   "android",
   "maskable",
   "mstile",
+  "socialCard",
   "manifest",
   "browserconfig",
   "htmlSnippet",
@@ -56,9 +57,14 @@ export function ExportPanel() {
   const t = useT();
   const locale = useLocale((s) => s.locale);
   const [appName, setAppName] = React.useState("Site");
+  // Social meta — для og-image + og/twitter snippet. Сейчас in-memory,
+  // подобно appName (не persist'ится между перезагрузками — упрощение MVP).
+  const [siteDescription, setSiteDescription] = React.useState("");
+  const [siteUrl, setSiteUrl] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const [open, setOpen] = React.useState(false);
+  const [socialOpen, setSocialOpen] = React.useState(false);
 
   // Векторные группы (favicon.svg, safari-pinned-tab.svg) не имеют смысла
   // при source=image — растр в SVG-обёртке бессмысленен. Блокируем чекбоксы
@@ -84,7 +90,10 @@ export function ExportPanel() {
     }
     setBusy(true);
     try {
-      const blob = await buildFaviconZip(config, appName, locale, include);
+      const blob = await buildFaviconZip(config, appName, locale, include, {
+        description: siteDescription,
+        url: siteUrl,
+      });
       downloadBlob(blob, `favicon-${(appName || "site").toLowerCase()}.zip`);
       try {
         const thumbDataUrl = await buildThumb(config);
@@ -95,7 +104,17 @@ export function ExportPanel() {
     } finally {
       setBusy(false);
     }
-  }, [noneSelected, t, config, appName, locale, include, addToHistory]);
+  }, [
+    noneSelected,
+    t,
+    config,
+    appName,
+    locale,
+    include,
+    addToHistory,
+    siteDescription,
+    siteUrl,
+  ]);
 
   // Подписка на Ctrl/Cmd+S из GlobalShortcuts — single source для скачивания.
   React.useEffect(() => {
@@ -117,6 +136,10 @@ export function ExportPanel() {
       appleVariants: include.appleVariants,
       manifest: include.manifest,
       browserconfig: include.browserconfig,
+      socialCard: include.socialCard && !!appName.trim(),
+      socialTitle: appName,
+      socialDescription: siteDescription,
+      socialUrl: siteUrl,
     });
     try {
       await navigator.clipboard.writeText(snippet);
@@ -144,6 +167,59 @@ export function ExportPanel() {
           {t("export.appName")}
         </label>
         <TextInput value={appName} onChange={(e) => setAppName(e.target.value)} />
+      </div>
+
+      {/* Социальная карточка — collapsible, чтобы не загромождать дефолт.
+          В свёрнутом виде юзер всё равно увидит og-image.png в архиве
+          (title=appName, subtitle пустой). При раскрытии — поля. */}
+      <div className="rounded-[var(--r-md)] border border-line bg-surface-2 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setSocialOpen((v) => !v)}
+          className="w-full flex items-center justify-between gap-2 px-3 py-2 text-xs text-ink-2 hover:text-ink hover:bg-line/40 transition-colors cursor-pointer"
+        >
+          <span className="flex items-center gap-2">
+            <ChevronDown
+              className={
+                "size-3.5 transition-transform " + (socialOpen ? "rotate-0" : "-rotate-90")
+              }
+            />
+            <span suppressHydrationWarning>{t("export.socialMeta")}</span>
+          </span>
+          <span className="text-[10px] text-muted">1200×630</span>
+        </button>
+        {socialOpen && (
+          <div className="border-t border-line p-2 space-y-2">
+            <div>
+              <label
+                className="block text-[10px] uppercase tracking-wider text-muted mb-1"
+                suppressHydrationWarning
+              >
+                {t("export.siteDescription")}
+              </label>
+              <TextInput
+                value={siteDescription}
+                onChange={(e) => setSiteDescription(e.target.value)}
+                placeholder={t("export.siteDescriptionPlaceholder")}
+                maxLength={200}
+              />
+            </div>
+            <div>
+              <label
+                className="block text-[10px] uppercase tracking-wider text-muted mb-1"
+                suppressHydrationWarning
+              >
+                {t("export.siteUrl")}
+              </label>
+              <TextInput
+                value={siteUrl}
+                onChange={(e) => setSiteUrl(e.target.value)}
+                placeholder="https://example.com"
+                type="url"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Свёрнутая по умолчанию секция выбора файлов. Закрытый вид показывает

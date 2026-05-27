@@ -137,6 +137,19 @@ const dict = {
     ru: "Скопировать как app/apple-icon.tsx (180×180 для iOS)",
     en: "Copy as app/apple-icon.tsx (180×180 for iOS)",
   },
+  "export.socialMeta": {
+    ru: "Соц-карточка (OG-image)",
+    en: "Social card (OG-image)",
+  },
+  "export.siteDescription": {
+    ru: "Описание (subtitle + meta)",
+    en: "Description (subtitle + meta)",
+  },
+  "export.siteDescriptionPlaceholder": {
+    ru: "Короткое описание сайта",
+    en: "Short site description",
+  },
+  "export.siteUrl": { ru: "URL сайта (canonical)", en: "Site URL (canonical)" },
   "export.copyReactComponentHint": {
     ru: "React-компонент с inline-SVG и size-prop",
     en: "React component with inline SVG and size prop",
@@ -168,6 +181,10 @@ const dict = {
   "inc.appleVariants": {
     ru: "Apple Touch варианты (120, 152, 167)",
     en: "Apple Touch variants (120, 152, 167)",
+  },
+  "inc.socialCard": {
+    ru: "Соц-карточка og-image.png (1200×630)",
+    en: "Social card og-image.png (1200×630)",
   },
   "inc.android": { ru: "Android Chrome (192, 512)", en: "Android Chrome (192, 512)" },
   "inc.maskable": { ru: "Maskable (192, 512)", en: "Maskable (192, 512)" },
