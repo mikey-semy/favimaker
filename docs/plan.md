@@ -114,3 +114,14 @@
 ---
 
 **🎉 Все 21 фича плана закрыты.** Roadmap из плана исчерпан, дальше — backlog по запросу.
+
+### Backlog (всплыл по ходу, реализован)
+
+- [x] VOID-32 — PWA PNG icons 192/512 + maskable (для Android install) · merged 2026-05-27 · #31
+- [x] VOID-33 — Esc closes all popovers · **cancelled** (FontPicker уже умеет, остальные не popovers)
+- [x] VOID-34 — Ctrl+K → toggle FontPicker · merged 2026-05-27 · #32
+- [x] VOID-35 — Manifest content audit (extends VOID-18) · merged 2026-05-27 · #33
+- [x] VOID-36 — ImageResponse custom-font option (Next.js) · merged 2026-05-27 · #34
+- [x] VOID-37 — Font-to-path для SVG favicon (opentype.js) · merged 2026-05-27 · #35
+
+**🎉🎉 Весь backlog тоже закрыт. 26 фич, 35 PR, 0 открытых.** AI text-to-favicon — за рамками: нужен бэкенд.
