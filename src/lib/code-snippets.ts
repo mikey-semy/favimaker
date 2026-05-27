@@ -114,40 +114,96 @@ function contentJsx(config: FaviconConfig, size: number): string {
   return `<span style={${contentStyle(config, size)}}>${escapeJsxString(value)}</span>`;
 }
 
-/** Хедер-комментарий с подсказкой про шрифты. */
-const FONT_TIP_RU =
-  "// NOTE: Google Fonts не подгружены автоматически. Если нужен ваш\n// шрифт — передайте его через `fonts` опцию ImageResponse:\n//   import { readFile } from 'fs/promises'\n//   const fontData = await readFile('./fonts/MyFont.ttf')\n//   return new ImageResponse(<...>, { ...size, fonts: [{ name: 'MyFont', data: fontData, weight: 700 }] })\n";
+/** Подсказка про шрифты (короткий вариант, без custom-font кода). */
+const FONT_TIP_SHORT =
+  "// NOTE: ImageResponse рендерит на Edge runtime — Google Fonts не\n// подгружаются автоматически. Включите 'Подгружать custom-шрифт' в\n// favimaker'е чтобы получить полный fetch-код для текущего шрифта.\n";
+
+/** Code-блок для inline-загрузки Google Font ttf через fetch. */
+function buildFontFetchCode(
+  fontFamily: string,
+  fontWeight: number,
+  varName: string,
+): string {
+  // Google Fonts API endpoint для конкретного weight'а — отдаёт CSS с
+  // ссылкой на ttf/woff2 файлы. Мы фетчим CSS, оттуда regex'им url(...) →
+  // фетч самого шрифта. Простой workaround т.к. /api/v1/fonts/{name}
+  // нестабильный, а CSS API работает всегда.
+  const cssUrl = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(/ /g, "+")}:wght@${fontWeight}&display=swap`;
+  return `// Загружаем ttf шрифта ${fontFamily} weight ${fontWeight} через Google Fonts API.
+// На Edge runtime fs/promises недоступен — используем fetch.
+async function ${varName}(): Promise<ArrayBuffer> {
+  const cssRes = await fetch(
+    '${cssUrl}',
+    // User-Agent чтобы Google вернул ttf а не woff2 (Edge runtime не умеет
+    // распаковывать woff2 на лету в некоторых конфигах).
+    { headers: { 'User-Agent': 'Mozilla/5.0' } },
+  )
+  const css = await cssRes.text()
+  const match = css.match(/url\\((https:[^)]+)\\)\\s*format\\('truetype'\\)/) ||
+                css.match(/url\\((https:[^)]+\\.ttf)\\)/)
+  if (!match) throw new Error('Не удалось извлечь ttf URL из Google Fonts CSS')
+  const fontRes = await fetch(match[1])
+  return await fontRes.arrayBuffer()
+}
+`;
+}
 
 /**
  * Генерирует код `app/icon.tsx` под текущий конфиг.
- * Size фиксирован 32×32 — стандарт браузерной вкладки.
+ * @param size — пиксельная ширина/высота. 32 для tab favicon, 180 для apple.
+ * @param withFonts — встроить fetch + fonts option для рендера с custom шрифтом.
  */
-export function buildNextJsIconSnippet(config: FaviconConfig, size = 32): string {
+export function buildNextJsIconSnippet(
+  config: FaviconConfig,
+  size = 32,
+  withFonts = false,
+): string {
+  // Custom font только для text-source (для icon/emoji не имеет смысла).
+  const useFonts = withFonts && config.source === "text";
+  const fontHelperName = `load${config.fontFamily.replace(/\W/g, "")}${config.fontWeight}`;
+
+  const fontsBlock = useFonts
+    ? buildFontFetchCode(config.fontFamily, config.fontWeight, fontHelperName)
+    : "";
+  const fontsOption = useFonts
+    ? `,
+      fonts: [
+        {
+          name: '${config.fontFamily}',
+          data: await ${fontHelperName}(),
+          weight: ${config.fontWeight},
+          style: 'normal',
+        },
+      ],`
+    : "";
+
   return `import { ImageResponse } from 'next/og'
 
 // Image metadata
 export const size = { width: ${size}, height: ${size} }
 export const contentType = 'image/png'
 
-${FONT_TIP_RU}
+${useFonts ? fontsBlock : FONT_TIP_SHORT}
 // Image generation — Next.js 13+ build-time favicon
-export default function Icon() {
+export default async function Icon() {
   return new ImageResponse(
     (
       <div style={${wrapperStyle(config, size)}}>
         ${contentJsx(config, size)}
       </div>
     ),
-    { ...size },
+    {
+      ...size${fontsOption}
+    },
   )
 }
 `;
 }
 
 /** Apple touch icon — 180×180 для iOS home-screen. */
-export function buildNextJsAppleIconSnippet(config: FaviconConfig): string {
-  const body = buildNextJsIconSnippet(config, 180);
-  return body.replace("export default function Icon()", "export default function AppleIcon()");
+export function buildNextJsAppleIconSnippet(config: FaviconConfig, withFonts = false): string {
+  const body = buildNextJsIconSnippet(config, 180, withFonts);
+  return body.replace("export default async function Icon()", "export default async function AppleIcon()");
 }
 
 // ── React / Vue inline-SVG components ────────────────────────────────────
