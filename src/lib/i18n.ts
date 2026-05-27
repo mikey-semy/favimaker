@@ -102,10 +102,6 @@ const dict = {
   "btn.loadingIcons": { ru: "Загружаю каталог…", en: "Loading catalog…" },
   "btn.showMore": { ru: "Показать ещё", en: "Show more" },
   "msg.nothingFound": { ru: "Ничего не найдено", en: "Nothing found" },
-  "msg.fontsLimit": {
-    ru: "Показано {visible} из {total} — уточните поиск",
-    en: "Showing {visible} of {total} — refine search",
-  },
 
   // icon categories
   "icon.cat.popular": { ru: "Популярные", en: "Popular" },
@@ -248,6 +244,10 @@ const dict = {
   "fonts.cyrillicOnly": { ru: "Только кириллица", en: "Cyrillic only" },
   "fonts.search": { ru: "Поиск...", en: "Search..." },
   "fonts.fontLabel": { ru: "Шрифт", en: "Font" },
+  "fonts.triggerHint": {
+    ru: "↓/↑ — перебор шрифтов, Enter — открыть список",
+    en: "↓/↑ — cycle fonts, Enter — open list",
+  },
   "fonts.loadFailed": {
     ru: "Не удалось загрузить полный каталог шрифтов — остаюсь на курируемом",
     en: "Failed to load full font catalog — staying on curated list",

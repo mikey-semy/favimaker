@@ -18,24 +18,40 @@ import { Field } from "./Field";
 import { cn } from "@/lib/cn";
 
 /**
- * Кастомный font-picker:
- * - каждая опция рендерится в своём font-family (превью прямо в списке)
- * - keyboard: ↑/↓ для перебора, Enter — выбор, Esc — закрыть, type-to-filter
- * - opt-in загрузка полного каталога (~1500 шрифтов через Fontsource API)
- * - cyrillic-фильтр
+ * Кастомный font-picker с виртуализированным списком (все 1968+ шрифтов
+ * скроллятся / переключаются ↓↑ без лимита). Превью каждой опции — в
+ * её собственном font-family. Lazy-load шрифтов только для visible range.
+ *
+ * Клавиатура:
+ * - ↓/↑ при открытом dropdown: листать шрифты по всему filtered массиву,
+ *   шрифт применяется сразу к иконке (live-preview).
+ * - ↓/↑ при закрытом dropdown (фокус на trigger): циклит шрифт без
+ *   открытия — для быстрого подбора без визуального шума.
+ * - Enter/Space: открыть/закрыть dropdown.
+ * - Esc: закрыть.
+ * - Home/End: первый/последний шрифт.
  */
+
+// Высота одной опции — фиксированная для виртуализации. py-2 (8+8) +
+// text-base (24) ≈ 40px. Закреплено через inline height на кнопке.
+const ITEM_HEIGHT = 40;
+// Высота скролл-области (max-h-72 = 18rem = 288px).
+const VIEWPORT_HEIGHT = 288;
+// Overscan — рендерим N items выше/ниже viewport для smooth-скролла.
+const OVERSCAN = 6;
+
 export function FontPicker() {
   const { config, set } = useConfig();
   const t = useT();
-  // Init из module-level cache — переживает unmount при смене вкладки Editor
   const [allFonts, setAllFonts] = React.useState<GoogleFont[] | null>(() => getCachedFonts());
   const [loadingAll, setLoadingAll] = React.useState(false);
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const [cyrillicOnly, setCyrillicOnly] = React.useState(false);
-  const [activeIndex, setActiveIndex] = React.useState(0);
+  const [scrollTop, setScrollTop] = React.useState(0);
   const listRef = React.useRef<HTMLDivElement>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
 
   // Загрузка выбранного шрифта в DOM (для рендера на canvas)
   React.useEffect(() => {
@@ -65,39 +81,42 @@ export function FontPicker() {
     return [...list].sort((a, b) => a.family.localeCompare(b.family));
   }, [source, search, cyrillicOnly]);
 
-  // Подгружаем шрифты для видимых опций партиями — чтобы превью отображалось
-  // в своём font-family. Слишком много одновременных запросов = лаги.
-  const VISIBLE_LIMIT = 80;
-  const visibleFonts = filtered.slice(0, VISIBLE_LIMIT);
+  // Виртуализация: вычисляем диапазон видимых индексов на базе scrollTop.
+  const startIdx = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - OVERSCAN);
+  const visibleCount = Math.ceil(VIEWPORT_HEIGHT / ITEM_HEIGHT) + OVERSCAN * 2;
+  const endIdx = Math.min(filtered.length, startIdx + visibleCount);
+  const visibleSlice = filtered.slice(startIdx, endIdx);
+
+  // Lazy-load @font-face только для текущего visible-окна. Каждый шрифт
+  // в превью отображается в своём font-family — без подгрузки видны
+  // в системном fallback.
   React.useEffect(() => {
     if (!open) return;
-    for (const f of visibleFonts) {
+    for (const f of visibleSlice) {
       loadGoogleFont(f.family, [f.weights[0] ?? 400]);
     }
-  }, [open, visibleFonts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, startIdx, endIdx, filtered]);
 
-  // Сброс активного индекса при изменении списка
+  // Сброс скролла при изменении фильтров (search / cyrillic)
   const onSearchChange = (v: string) => {
     setSearch(v);
-    setActiveIndex(0);
+    setScrollTop(0);
+    if (listRef.current) listRef.current.scrollTop = 0;
   };
   const onCyrillicChange = (v: boolean) => {
     setCyrillicOnly(v);
-    setActiveIndex(0);
+    setScrollTop(0);
+    if (listRef.current) listRef.current.scrollTop = 0;
   };
 
-  // Автоподгрузка каталога — фоновый fetch при первом открытии (в обработчике,
-  // не useEffect, чтобы не нарушать react-hooks/set-state-in-effect).
-  // Курируемый список доступен сразу, через ~1-2с расширяется до ~1500.
-  // Module-level кэш + shared promise дедуплицируют повторные запросы.
+  // Автоподгрузка каталога при первом открытии
   const triggerLoadIfNeeded = () => {
     if (allFonts || loadingAll) return;
     setLoadingAll(true);
     fetchAllFonts()
       .then(setAllFonts)
       .catch(() => {
-        // Bundled и Fontsource оба упали. Редко (bundled — same-origin
-        // statics), но если — юзер должен знать почему всё ещё ~90.
         toast.error(t("fonts.loadFailed"));
       })
       .finally(() => setLoadingAll(false));
@@ -109,55 +128,73 @@ export function FontPicker() {
     if (next) triggerLoadIfNeeded();
   };
 
-  // Ctrl/Cmd+K из GlobalShortcuts → toggle picker.
+  // Ctrl/Cmd+K → toggle picker
   React.useEffect(() => {
     return onShortcut("fontPicker", () => {
       handleToggleOpen();
     });
-    // handleToggleOpen зависит от `open` который меняется — рекурсивно
-    // переподписываемся. Это OK: onShortcut.unsubscribe дёшев.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Скролл к выбранной/активной опции при ↑↓
+  // Текущий индекс выбранного шрифта в filtered (для ↓↑)
+  const currentIdx = React.useMemo(
+    () => filtered.findIndex((f) => f.family === config.fontFamily),
+    [filtered, config.fontFamily],
+  );
+
+  // Скролл к индексу — для ↓↑ когда выбранный шрифт уезжает из viewport
+  const scrollToIdx = React.useCallback((idx: number) => {
+    if (!listRef.current) return;
+    const top = idx * ITEM_HEIGHT;
+    const bottom = top + ITEM_HEIGHT;
+    const viewTop = listRef.current.scrollTop;
+    const viewBottom = viewTop + listRef.current.clientHeight;
+    if (top < viewTop) listRef.current.scrollTop = top;
+    else if (bottom > viewBottom) listRef.current.scrollTop = bottom - listRef.current.clientHeight;
+  }, []);
+
+  // При открытии — скроллим к выбранному шрифту, чтобы он сразу был виден
   React.useEffect(() => {
-    if (!open || !listRef.current) return;
-    const targetIdx =
-      visibleFonts.findIndex((f) => f.family === config.fontFamily) >= 0
-        ? visibleFonts.findIndex((f) => f.family === config.fontFamily)
-        : activeIndex;
-    const item = listRef.current.querySelector<HTMLElement>(`[data-idx="${targetIdx}"]`);
-    item?.scrollIntoView({ block: "nearest" });
-  }, [config.fontFamily, activeIndex, open, visibleFonts]);
+    if (!open || currentIdx < 0 || !listRef.current) return;
+    const top = currentIdx * ITEM_HEIGHT;
+    // Центрируем выбранный шрифт по возможности
+    const target = Math.max(0, top - VIEWPORT_HEIGHT / 2 + ITEM_HEIGHT / 2);
+    listRef.current.scrollTop = target;
+    setScrollTop(target);
+  }, [open, currentIdx]);
 
-  // Найти текущий индекс шрифта в видимом списке для арифметики ↑↓
-  const currentIdx = visibleFonts.findIndex((f) => f.family === config.fontFamily);
-
-  const applyIdx = (idx: number) => {
-    const clamped = Math.max(0, Math.min(visibleFonts.length - 1, idx));
-    const f = visibleFonts[clamped];
-    if (f) {
+  const applyIdx = React.useCallback(
+    (idx: number, scrollToIt = true) => {
+      const clamped = Math.max(0, Math.min(filtered.length - 1, idx));
+      const f = filtered[clamped];
+      if (!f) return;
       set("fontFamily", f.family);
-      setActiveIndex(clamped);
-    }
-  };
+      if (scrollToIt) scrollToIdx(clamped);
+    },
+    [filtered, set, scrollToIdx],
+  );
 
-  // Локальный обработчик для кнопки-триггера (открытие по Enter/Space/↓)
+  // Trigger keydown: ↓/↑ при закрытом dropdown циклит шрифт без открытия.
+  // Enter/Space/F4 — открыть.
   const onTriggerKeyDown = (e: React.KeyboardEvent) => {
-    if (!open && (e.key === "Enter" || e.key === "ArrowDown" || e.key === " ")) {
+    if (open) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      applyIdx((currentIdx >= 0 ? currentIdx : -1) + 1, false);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      applyIdx((currentIdx >= 0 ? currentIdx : 0) - 1, false);
+    } else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       setOpen(true);
       triggerLoadIfNeeded();
     }
   };
 
-  // Глобальный keydown когда dropdown открыт — стрелки/Home/End/Esc срабатывают
-  // независимо от того где фокус (input/опции/где-то ещё). Это и есть «удобный
-  // перебор» — нажал ↓ и шрифт сменился.
+  // Глобальный keydown когда dropdown открыт — листание по filtered
   React.useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      // Не перехватываем стандартное редактирование в search-input
       const target = e.target as HTMLElement | null;
       const isTypingInInput =
         target?.tagName === "INPUT" &&
@@ -173,40 +210,52 @@ export function FontPicker() {
       if (e.key === "Escape" || e.key === "Enter") {
         e.preventDefault();
         setOpen(false);
+        triggerRef.current?.focus();
         return;
       }
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        applyIdx((currentIdx >= 0 ? currentIdx : activeIndex) + 1);
+        applyIdx((currentIdx >= 0 ? currentIdx : -1) + 1);
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        applyIdx((currentIdx >= 0 ? currentIdx : activeIndex) - 1);
+        applyIdx((currentIdx >= 0 ? currentIdx : 0) - 1);
       } else if (e.key === "Home") {
         e.preventDefault();
         applyIdx(0);
       } else if (e.key === "End") {
         e.preventDefault();
-        applyIdx(visibleFonts.length - 1);
+        applyIdx(filtered.length - 1);
+      } else if (e.key === "PageDown") {
+        e.preventDefault();
+        applyIdx((currentIdx >= 0 ? currentIdx : 0) + Math.floor(VIEWPORT_HEIGHT / ITEM_HEIGHT));
+      } else if (e.key === "PageUp") {
+        e.preventDefault();
+        applyIdx((currentIdx >= 0 ? currentIdx : 0) - Math.floor(VIEWPORT_HEIGHT / ITEM_HEIGHT));
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, currentIdx, activeIndex, visibleFonts]);
+  }, [open, currentIdx, filtered, applyIdx]);
+
+  // Высота "холста" внутри scroll-контейнера = total items * item height —
+  // даёт правильный scrollbar для всего списка несмотря на виртуальный рендер.
+  const totalHeight = filtered.length * ITEM_HEIGHT;
 
   return (
     <div className="space-y-2">
       <Field label={`${t("fonts.fontLabel")} (${filtered.length}${allFonts ? ` / ${allFonts.length}` : "+"})`}>
         <div ref={containerRef} className="relative">
           <button
+            ref={triggerRef}
             type="button"
             onClick={handleToggleOpen}
             onKeyDown={onTriggerKeyDown}
             className="flex w-full items-center justify-between gap-2 rounded-[var(--r-md)] bg-surface-2 border border-line px-3 py-2 text-sm text-ink outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20 cursor-pointer"
             aria-haspopup="listbox"
             aria-expanded={open}
+            title={t("fonts.triggerHint")}
           >
-            <span style={{ fontFamily: `"${config.fontFamily}", sans-serif` }}>
+            <span className="truncate" style={{ fontFamily: `"${config.fontFamily}", sans-serif` }}>
               {config.fontFamily}
             </span>
             <ChevronDown className="size-4 text-muted shrink-0" />
@@ -226,51 +275,51 @@ export function FontPicker() {
                 ref={listRef}
                 role="listbox"
                 tabIndex={-1}
-                className="max-h-72 overflow-y-auto"
+                onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+                className="overflow-y-auto"
+                style={{ maxHeight: VIEWPORT_HEIGHT }}
               >
-                {visibleFonts.length === 0 ? (
+                {filtered.length === 0 ? (
                   <div className="p-3 text-xs text-muted text-center">{t("msg.nothingFound")}</div>
                 ) : (
-                  visibleFonts.map((f, idx) => {
-                    const selected = f.family === config.fontFamily;
-                    const active = idx === activeIndex;
-                    return (
-                      <button
-                        key={f.family}
-                        type="button"
-                        role="option"
-                        aria-selected={selected}
-                        data-idx={idx}
-                        onClick={() => {
-                          set("fontFamily", f.family);
-                          setOpen(false);
-                        }}
-                        onMouseEnter={() => setActiveIndex(idx)}
-                        className={cn(
-                          "flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors",
-                          selected
-                            ? "bg-accent/15 text-ink"
-                            : active
-                              ? "bg-surface-2"
-                              : "",
-                        )}
-                      >
-                        <span
-                          className="text-base truncate"
-                          style={{ fontFamily: `"${f.family}", sans-serif` }}
+                  <div style={{ height: totalHeight, position: "relative" }}>
+                    {visibleSlice.map((f, i) => {
+                      const idx = startIdx + i;
+                      const selected = f.family === config.fontFamily;
+                      return (
+                        <button
+                          key={f.family}
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          data-idx={idx}
+                          onClick={() => {
+                            set("fontFamily", f.family);
+                            setOpen(false);
+                            triggerRef.current?.focus();
+                          }}
+                          style={{
+                            position: "absolute",
+                            top: idx * ITEM_HEIGHT,
+                            left: 0,
+                            right: 0,
+                            height: ITEM_HEIGHT,
+                          }}
+                          className={cn(
+                            "flex w-full items-center justify-between gap-3 px-3 text-left transition-colors hover:bg-surface-2",
+                            selected && "bg-accent/15 text-ink",
+                          )}
                         >
-                          {f.family}
-                        </span>
-                        {selected && <Check className="size-3.5 text-accent shrink-0" />}
-                      </button>
-                    );
-                  })
-                )}
-                {filtered.length > VISIBLE_LIMIT && (
-                  <div className="p-2 text-[10px] text-muted text-center border-t border-line">
-                    {t("msg.fontsLimit")
-                      .replace("{visible}", String(VISIBLE_LIMIT))
-                      .replace("{total}", String(filtered.length))}
+                          <span
+                            className="text-base truncate"
+                            style={{ fontFamily: `"${f.family}", sans-serif` }}
+                          >
+                            {f.family}
+                          </span>
+                          {selected && <Check className="size-3.5 text-accent shrink-0" />}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
