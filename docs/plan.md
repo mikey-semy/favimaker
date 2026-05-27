@@ -105,3 +105,5 @@
 - [x] VOID-30 — React/Vue inline-SVG components · merged 2026-05-26 · #18
 - [x] VOID-16 — OG-image 1200×630 + og/twitter meta · merged 2026-05-27 · #21
 - [x] VOID-17 — Full meta-head opt-in (theme-color, application-name) · merged 2026-05-27 · #22
+- [x] VOID-14 — Dark-mode favicon variant (SVG + media-query) · merged 2026-05-27 · #24
+- [x] VOID-22 — Multi-line text (monogram) · merged 2026-05-27 · #25
