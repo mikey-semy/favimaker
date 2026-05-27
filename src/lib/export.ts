@@ -2,7 +2,12 @@
 
 import JSZip from "jszip";
 import { encodeIco } from "./ico";
-import { buildBrowserConfig, buildHtmlSnippet, buildManifest } from "./manifest";
+import {
+  buildBrowserConfig,
+  buildHtmlSnippet,
+  buildManifest,
+  themeColorFromConfig,
+} from "./manifest";
 import { renderToPngBlob } from "./renderer";
 import { renderOgImageToBlob } from "./og-renderer";
 import { renderToPinnedTabSvg, renderToSvgString } from "./svg-render";
@@ -182,6 +187,8 @@ export type SocialMeta = {
   description?: string;
   /** Canonical URL сайта — попадает в og:url meta. */
   url?: string;
+  /** Включить полный meta-head блок (theme-color/application-name/apple-*). */
+  fullMetaHead?: boolean;
 };
 
 export async function buildFaviconZip(
@@ -292,6 +299,8 @@ export async function buildFaviconZip(
         socialTitle: appName,
         socialDescription: social.description,
         socialUrl: social.url,
+        fullMetaHead: social.fullMetaHead,
+        themeColorLight: social.fullMetaHead ? themeColorFromConfig(config) : undefined,
       }),
     );
   }
