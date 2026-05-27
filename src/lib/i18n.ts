@@ -53,6 +53,12 @@ const dict = {
   "field.strokeWidth": { ru: "Толщина", en: "Width" },
   "field.border": { ru: "Бордер", en: "Border" },
   "field.borderColor": { ru: "Цвет бордера", en: "Border color" },
+  "field.darkVariant": {
+    ru: "Парная иконка для тёмной темы",
+    en: "Pair icon for dark theme",
+  },
+  "field.darkTextColor": { ru: "Текст (тёмная)", en: "Text (dark)" },
+  "field.darkBgColor": { ru: "Фон (тёмная)", en: "Background (dark)" },
 
   // buttons
   "btn.reset": { ru: "Сброс", en: "Reset" },

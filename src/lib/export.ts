@@ -10,7 +10,7 @@ import {
 } from "./manifest";
 import { renderToPngBlob } from "./renderer";
 import { renderOgImageToBlob } from "./og-renderer";
-import { renderToPinnedTabSvg, renderToSvgString } from "./svg-render";
+import { renderToPinnedTabSvg, renderToSvgString, withDarkOverride } from "./svg-render";
 import type { FaviconConfig } from "./types";
 
 /** Группы файлов архива — пользователь может выключать ненужные. */
@@ -106,6 +106,7 @@ function buildReadmeText(locale: "ru" | "en"): string {
       "",
       "Files:",
       "  favicon.svg                              — modern browsers (vector, sharp at any DPI)",
+      "  favicon-dark.svg                         — dark-theme variant (if enabled)",
       "  favicon.ico                              — legacy browsers / Windows (16+32+48)",
       "  favicon-16x16.png                        — browser tab",
       "  favicon-32x32.png                        — browser tab (retina)",
@@ -137,6 +138,7 @@ function buildReadmeText(locale: "ru" | "en"): string {
     "",
     "Файлы:",
     "  favicon.svg                              — современные браузеры (vector, резко на любом DPI)",
+    "  favicon-dark.svg                         — вариант для тёмной темы (если включено)",
     "  favicon.ico                              — старые браузеры / Windows (16+32+48)",
     "  favicon-16x16.png                        — браузерная вкладка",
     "  favicon-32x32.png                        — браузерная вкладка retina",
@@ -251,6 +253,14 @@ export async function buildFaviconZip(
   const pinnedTabTask: Promise<string | null> = include.safariPinnedTab
     ? renderToPinnedTabSvg(config)
     : Promise.resolve(null);
+  // Dark variant SVG — если юзер включил darkVariantEnabled И есть SVG.
+  // Парная иконка для prefers-color-scheme: dark. Только SVG в MVP —
+  // PNG-варианты удвоят размер архива, SVG-favicon у современных браузеров
+  // достаточно.
+  const darkSvgTask: Promise<string | null> =
+    include.svg && config.darkVariantEnabled
+      ? renderToSvgString(withDarkOverride(config))
+      : Promise.resolve(null);
 
   // OG-card: 1200×630 PNG. Если title (appName) пустой — не генерим
   // карточку без хоть какого-то заголовка (выглядит ущербно).
@@ -259,13 +269,14 @@ export async function buildFaviconZip(
       ? renderOgImageToBlob(config, appName || "Site", social.description ?? "")
       : Promise.resolve(null);
 
-  const [pngBlobs, maskableBlobs, icoPngs, svgString, pinnedTabSvg, ogBlob] =
+  const [pngBlobs, maskableBlobs, icoPngs, svgString, pinnedTabSvg, darkSvgString, ogBlob] =
     await Promise.all([
       Promise.all(pngTasks),
       Promise.all(maskableTasks),
       icoTask,
       svgTask,
       pinnedTabTask,
+      darkSvgTask,
       ogTask,
     ]);
 
@@ -274,6 +285,7 @@ export async function buildFaviconZip(
   if (icoPngs) zip.file("favicon.ico", encodeIco(icoPngs));
   if (svgString) zip.file("favicon.svg", svgString);
   if (pinnedTabSvg) zip.file("safari-pinned-tab.svg", pinnedTabSvg);
+  if (darkSvgString) zip.file("favicon-dark.svg", darkSvgString);
   if (ogBlob) zip.file("og-image.png", ogBlob);
 
   if (include.manifest) {
@@ -301,6 +313,12 @@ export async function buildFaviconZip(
         socialUrl: social.url,
         fullMetaHead: social.fullMetaHead,
         themeColorLight: social.fullMetaHead ? themeColorFromConfig(config) : undefined,
+        // Dark-mode favicon variant — emit парные SVG-link'и с media-query
+        // когда юзер сгенерил favicon-dark.svg. И заодно themeColorDark
+        // из darkBgColor — переключается вместе с иконкой в браузере.
+        darkVariant: include.svg && !!darkSvgString,
+        themeColorDark:
+          social.fullMetaHead && config.darkVariantEnabled ? config.darkBgColor : undefined,
       }),
     );
   }
