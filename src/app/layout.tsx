@@ -21,9 +21,16 @@ export const metadata: Metadata = {
   title: "favimaker — Favicon generator",
   description:
     "Сделай favicon и весь сопутствующий набор (manifest, apple-touch, android-chrome, maskable) в браузере. Любой Google-шрифт, любой цвет, любая форма.",
-  // PWA / favicon — favimaker сам себе сделал иконку (см. public/favicon.svg)
+  // PWA / favicon — favimaker сам себе сделал иконку (см. public/favicon.svg).
+  // PNG-варианты регенерируются `yarn gen:icons` из favicon.svg
+  // (см. scripts/gen-pwa-icons.mjs).
   icons: {
-    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: "/apple-touch-icon.png",
   },
   manifest: "/site.webmanifest",
   applicationName: "favimaker",
