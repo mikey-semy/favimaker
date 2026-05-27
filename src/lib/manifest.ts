@@ -1,3 +1,4 @@
+import { buildAllSplashLinks } from "./splash-renderer";
 import type { FaviconConfig } from "./types";
 
 /** Цвет для meta theme-color / manifest theme_color / browserconfig TileColor. */
@@ -108,6 +109,9 @@ export type SnippetInclude = {
   /** Парные SVG-link tags с media="(prefers-color-scheme: light/dark)" для
    *  переключения иконки между темами. Требует favicon-dark.svg в архиве. */
   darkVariant?: boolean;
+  /** iOS PWA splash screens — apple-touch-startup-image для всех устройств.
+   *  Opt-in, требует apple-splash-*.png в архиве. */
+  iosSplash?: boolean;
 };
 
 export function buildHtmlSnippet(include: SnippetInclude = {}): string {
@@ -179,6 +183,12 @@ export function buildHtmlSnippet(include: SnippetInclude = {}): string {
   if (flag("safariPinnedTab")) {
     const color = include.safariPinnedTabColor ?? "#000000";
     lines.push(`<link rel="mask-icon" href="/safari-pinned-tab.svg" color="${color}">`);
+  }
+  // iOS splash screens — opt-in (24 link'а на устройство × ориентацию).
+  if (include.iosSplash === true) {
+    lines.push("");
+    lines.push("<!-- iOS PWA splash screens (apple-touch-startup-image) -->");
+    for (const link of buildAllSplashLinks()) lines.push(link);
   }
   if (flag("manifest")) lines.push(`<link rel="manifest" href="/site.webmanifest">`);
   if (flag("browserconfig")) lines.push(`<meta name="msapplication-config" content="/browserconfig.xml">`);

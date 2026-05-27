@@ -204,6 +204,10 @@ const dict = {
     ru: "Соц-карточка og-image.png (1200×630)",
     en: "Social card og-image.png (1200×630)",
   },
+  "inc.iosSplash": {
+    ru: "iOS PWA splash screens (~24 файла)",
+    en: "iOS PWA splash screens (~24 files)",
+  },
   "inc.android": { ru: "Android Chrome (192, 512)", en: "Android Chrome (192, 512)" },
   "inc.maskable": { ru: "Maskable (192, 512)", en: "Maskable (192, 512)" },
   "inc.mstile": { ru: "Windows Tile (150)", en: "Windows Tile (150)" },
