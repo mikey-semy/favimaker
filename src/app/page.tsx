@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Github } from "lucide-react";
+import Link from "next/link";
+import { Github, Stethoscope } from "lucide-react";
 import { Editor } from "@/components/Editor";
 import { Preview } from "@/components/Preview";
 import { ExportPanel } from "@/components/ExportPanel";
@@ -53,6 +54,14 @@ export default function HomePage() {
             <UndoRedo />
             <div className="w-px h-5 bg-line mx-1" aria-hidden />
             <InstallButton />
+            <Link
+              href="/audit"
+              title={t("audit.title")}
+              className="flex items-center justify-center size-8 rounded-[var(--r-md)] text-muted hover:text-ink hover:bg-surface-2 transition-colors"
+              aria-label={t("audit.title")}
+            >
+              <Stethoscope className="size-4" />
+            </Link>
             <LangToggle />
             <ThemeToggle />
             <a
