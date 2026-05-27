@@ -61,6 +61,10 @@ const dict = {
     ru: "Вторая строка (для монограммы) — необязательно",
     en: "Second line (for monogram) — optional",
   },
+  "field.embedFontInSvg": {
+    ru: "Вшить glyph paths в SVG (правильный шрифт оффлайн)",
+    en: "Embed glyph paths in SVG (correct font offline)",
+  },
   "field.darkTextColor": { ru: "Текст (тёмная)", en: "Text (dark)" },
   "field.darkBgColor": { ru: "Фон (тёмная)", en: "Background (dark)" },
 
