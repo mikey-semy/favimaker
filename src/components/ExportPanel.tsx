@@ -16,13 +16,16 @@ import {
   buildNextJsIconSnippet,
   buildReactSvgComponent,
   buildVueSvgComponent,
+  FRAMEWORKS,
+  wrapForFramework,
+  type FrameworkId,
 } from "@/lib/code-snippets";
 import { renderToSvgString } from "@/lib/svg-render";
 import { useLocale, useT } from "@/lib/i18n";
 import { buildThumb, useHistory } from "@/lib/history";
 import { onShortcut } from "@/lib/shortcuts";
 import { toast } from "@/lib/toast";
-import { Button, Checkbox, TextInput } from "./inputs";
+import { Button, Checkbox, Select, TextInput } from "./inputs";
 
 const GROUP_ORDER: (keyof ExportInclude)[] = [
   "svg",
@@ -65,6 +68,8 @@ export function ExportPanel() {
   // Full meta head — opt-in, добавляет theme-color/application-name/
   // apple-mobile-web-app-* meta в HTML-сниппет.
   const [fullMetaHead, setFullMetaHead] = React.useState(false);
+  // Framework wrapper для HTML-сниппета. Default 'html' = plain (без обёртки).
+  const [framework, setFramework] = React.useState<FrameworkId>("html");
   const [busy, setBusy] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const [open, setOpen] = React.useState(false);
@@ -132,7 +137,7 @@ export function ExportPanel() {
   const handleCopySnippet = async () => {
     // Сниппет должен ссылаться только на файлы которые юзер реально включит
     // в архив. SVG-группы дополнительно прячем для image-source.
-    const snippet = buildHtmlSnippet({
+    const rawHtml = buildHtmlSnippet({
       svg: include.svg && config.source !== "image",
       safariPinnedTab: include.safariPinnedTab && config.source !== "image",
       safariPinnedTabColor: config.textColor,
@@ -153,6 +158,8 @@ export function ExportPanel() {
       // загрузке на мобильном Chrome (адресная строка перекрашивается).
       themeColorLight: themeColorFromConfig(config),
     });
+    // Обёртка под выбранный фреймворк. По умолчанию 'html' → pass-through.
+    const snippet = wrapForFramework(framework, rawHtml);
     try {
       await navigator.clipboard.writeText(snippet);
       setCopied(true);
@@ -319,6 +326,28 @@ export function ExportPanel() {
           </>
         )}
       </Button>
+
+      {/* Framework selector — обёртка вокруг HTML-сниппета. По умолчанию
+          'html' = pass-through. Astro/Nuxt/Remix получают полные шаблоны
+          с правильным размещением, чтобы юзеру не гадать. */}
+      <div className="space-y-1.5">
+        <Select
+          value={framework}
+          onChange={(e) => setFramework(e.target.value as FrameworkId)}
+        >
+          {FRAMEWORKS.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.label}
+            </option>
+          ))}
+        </Select>
+        <p
+          className="text-[10px] text-muted leading-tight px-0.5"
+          suppressHydrationWarning
+        >
+          {FRAMEWORKS.find((f) => f.id === framework)?.filePath}
+        </p>
+      </div>
 
       <Button variant="secondary" size="md" onClick={handleCopySnippet} className="w-full">
         {copied ? (

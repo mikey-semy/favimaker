@@ -197,6 +197,129 @@ export function ${componentName}({ size = 32, className }: ${componentName}Props
 `;
 }
 
+// ── Framework wrappers вокруг HTML-сниппета ─────────────────────────────
+//
+// Большинство фреймворков спокойно принимают plain HTML-тэги в <head>
+// (Vite/SvelteKit/Astro/Nuxt — всё работает). Эта секция даёт готовые
+// «куда вставить» wrappers, чтобы юзеру не гадать с конвенциями.
+
+export type FrameworkId = "html" | "astro" | "vite" | "sveltekit" | "nuxt" | "remix";
+
+export type FrameworkSpec = {
+  id: FrameworkId;
+  /** Human label для UI. */
+  label: string;
+  /** Файл куда вставлять (i18n-агностично, оставим en). */
+  filePath: string;
+  /** Обёртка вокруг готового HTML-сниппета. По умолчанию — pass-through. */
+  wrap?: (htmlSnippet: string) => string;
+};
+
+function indent(text: string, spaces = 4): string {
+  const pad = " ".repeat(spaces);
+  return text
+    .split("\n")
+    .map((l) => (l.length > 0 ? pad + l : l))
+    .join("\n");
+}
+
+export const FRAMEWORKS: FrameworkSpec[] = [
+  {
+    id: "html",
+    label: "Plain HTML",
+    filePath: "index.html — внутри <head>",
+  },
+  {
+    id: "vite",
+    label: "Vite",
+    filePath: "index.html — внутри <head> (vanilla Vite шаблон)",
+  },
+  {
+    id: "sveltekit",
+    label: "SvelteKit",
+    filePath: "src/app.html — заменить %sveltekit.head% или дописать выше",
+  },
+  {
+    id: "astro",
+    label: "Astro",
+    filePath: "src/layouts/Layout.astro — внутри <head>",
+    wrap: (snippet) =>
+      `---
+// src/layouts/Layout.astro
+interface Props { title: string }
+const { title } = Astro.props
+---
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+${indent(snippet, 4)}
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
+`,
+  },
+  {
+    id: "nuxt",
+    label: "Nuxt 3",
+    filePath: "app.vue → useHead(...) ИЛИ nuxt.config.ts → app.head",
+    wrap: (snippet) =>
+      `// app.vue — простой вариант: вставить plain HTML в <Head> компонент
+<template>
+  <Head>
+${indent(snippet, 4)}
+  </Head>
+  <div>
+    <NuxtPage />
+  </div>
+</template>
+
+<!-- Альтернатива: useHead({ link: [...], meta: [...] }) — см. документацию
+     Nuxt 3 / @vueuse/head. Plain HTML внутри <Head>-компонента — самый
+     простой путь, формат-совместимо с тем что генерит favimaker. -->
+`,
+  },
+  {
+    id: "remix",
+    label: "Remix",
+    filePath: "app/root.tsx — экспорт links() / meta()",
+    wrap: (snippet) =>
+      `// app/root.tsx
+// Remix предлагает декларативные экспорты links() и meta(), но они принимают
+// объекты — конвертация plain HTML в их формат требует ручного разбора.
+// Самый простой путь — оставить favicon-link'и в head через <Links /> +
+// дополнительные раздать через <head> в Document component:
+
+import { Links, Meta, Outlet, Scripts } from "@remix-run/react"
+
+export default function App() {
+  return (
+    <html lang="ru">
+      <head>
+        <Meta />
+        <Links />
+${indent(snippet, 8)}
+      </head>
+      <body>
+        <Outlet />
+        <Scripts />
+      </body>
+    </html>
+  )
+}
+`,
+  },
+];
+
+export function wrapForFramework(id: FrameworkId, htmlSnippet: string): string {
+  const spec = FRAMEWORKS.find((f) => f.id === id);
+  return spec?.wrap ? spec.wrap(htmlSnippet) : htmlSnippet;
+}
+
 /** Vue 3 SFC (script setup TS) с inline-SVG. */
 export function buildVueSvgComponent(svg: string, componentName = "FavimakerIcon"): string {
   const { viewBox, inner } = parseSvg(svg);
