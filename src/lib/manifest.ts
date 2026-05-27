@@ -90,6 +90,12 @@ export type SnippetInclude = {
   appleVariants?: boolean;
   manifest?: boolean;
   browserconfig?: boolean;
+  /** Open Graph + Twitter card meta. Opt-in: emit'им только при === true,
+   *  иначе пустой OG-блок без title в bare-default. */
+  socialCard?: boolean;
+  socialTitle?: string;
+  socialDescription?: string;
+  socialUrl?: string;
 };
 
 export function buildHtmlSnippet(include: SnippetInclude = {}): string {
@@ -120,5 +126,42 @@ export function buildHtmlSnippet(include: SnippetInclude = {}): string {
   if (flag("manifest")) lines.push(`<link rel="manifest" href="/site.webmanifest">`);
   if (flag("browserconfig")) lines.push(`<meta name="msapplication-config" content="/browserconfig.xml">`);
 
+  // Social meta (Open Graph + Twitter). Opt-in: только при socialCard === true.
+  // og:image и twitter:image обязательны для красивого preview.
+  // title/description/url — опциональны, эмитим если переданы.
+  if (include.socialCard === true) {
+    const title = include.socialTitle?.trim();
+    const desc = include.socialDescription?.trim();
+    const url = include.socialUrl?.trim();
+    lines.push("");
+    lines.push("<!-- Open Graph + Twitter (соц-превью при шеринге) -->");
+    if (title) {
+      lines.push(`<meta property="og:title" content="${escapeHtml(title)}">`);
+      lines.push(`<meta name="twitter:title" content="${escapeHtml(title)}">`);
+    }
+    if (desc) {
+      lines.push(`<meta property="og:description" content="${escapeHtml(desc)}">`);
+      lines.push(`<meta name="twitter:description" content="${escapeHtml(desc)}">`);
+    }
+    if (url) {
+      lines.push(`<meta property="og:url" content="${escapeHtml(url)}">`);
+    }
+    lines.push(`<meta property="og:type" content="website">`);
+    lines.push(`<meta property="og:image" content="/og-image.png">`);
+    lines.push(`<meta property="og:image:width" content="1200">`);
+    lines.push(`<meta property="og:image:height" content="630">`);
+    lines.push(`<meta name="twitter:card" content="summary_large_image">`);
+    lines.push(`<meta name="twitter:image" content="/og-image.png">`);
+  }
+
   return lines.join("\n") + "\n";
+}
+
+/** Минимальный HTML-escape для attribute-values. */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
