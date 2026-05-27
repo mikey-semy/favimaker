@@ -68,7 +68,7 @@ export function Editor() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full min-w-0">
       {/* Tab bar — icon + label stacked vertically, помещается 5 табов */}
       <div className="flex gap-0.5 mb-3 bg-surface-2 rounded-[var(--r-md)] p-1 border border-line">
         {TABS.map((tDef) => {
@@ -98,8 +98,10 @@ export function Editor() {
       </div>
 
       {/* Tab content. key={tab} перезапускает CSS-анимацию tab-content
-          при смене таба — мягкий fade-in вместо резкого «прыжка». */}
-      <div key={tab} className="flex-1 min-h-0 tab-content">
+          при смене таба — мягкий fade-in вместо резкого «прыжка».
+          w-full min-w-0 — стабильная ширина чтобы при переключении
+          табов с разным контентом aside не схлопывался. */}
+      <div key={tab} className="flex-1 min-h-0 w-full min-w-0 tab-content">
         {tab === "presets" && <Presets />}
         {tab === "source" && <SourceTab />}
         {tab === "shape" && <ShapeTab />}

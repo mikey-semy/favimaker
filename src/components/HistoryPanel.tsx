@@ -1,7 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { Download, FileDown, FileUp, Pin, PinOff, RotateCcw, Trash2 } from "lucide-react";
+import {
+  Download,
+  FileDown,
+  FileUp,
+  History as HistoryIcon,
+  Pin,
+  PinOff,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
 import { useConfig } from "@/lib/store";
 import { useHistory, type HistoryEntry } from "@/lib/history";
 import { buildFaviconZip, downloadBlob } from "@/lib/export";
@@ -89,13 +98,24 @@ export function HistoryPanel() {
 
   if (entries.length === 0) {
     return (
-      <div className="space-y-2">
-        <p
-          className="text-[11px] text-muted leading-relaxed"
-          suppressHydrationWarning
-        >
-          {t("history.empty")}
-        </p>
+      <div className="flex flex-col items-center justify-center text-center py-8 px-3 gap-3">
+        <div className="flex items-center justify-center size-14 rounded-full bg-surface-2 border border-line">
+          <HistoryIcon className="size-6 text-muted" />
+        </div>
+        <div className="space-y-1">
+          <p
+            className="text-sm font-medium text-ink"
+            suppressHydrationWarning
+          >
+            {t("history.emptyTitle")}
+          </p>
+          <p
+            className="text-[11px] text-muted leading-relaxed max-w-[220px] mx-auto"
+            suppressHydrationWarning
+          >
+            {t("history.empty")}
+          </p>
+        </div>
         <ImportButton
           onClick={() => importInputRef.current?.click()}
           label={t("history.import")}

@@ -380,9 +380,10 @@ const dict = {
 
   // history
   "section.history": { ru: "История", en: "History" },
+  "history.emptyTitle": { ru: "История пуста", en: "History is empty" },
   "history.empty": {
-    ru: "Здесь появятся иконки, которые вы скачали",
-    en: "Icons you download will appear here",
+    ru: "Сюда попадут иконки, которые вы скачаете. Или загрузите бэкап JSON.",
+    en: "Icons you download will appear here. Or load a JSON backup.",
   },
   "history.restore": { ru: "Применить", en: "Apply" },
   "history.download": { ru: "Скачать снова", en: "Download again" },

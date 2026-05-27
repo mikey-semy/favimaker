@@ -80,18 +80,21 @@ export default function HomePage() {
 
       <div className="mx-auto max-w-[1600px] px-4 py-4 lg:px-6 lg:py-6 flex-1">
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr_300px] gap-3 lg:gap-4">
-          <aside className="bg-surface rounded-[var(--r-lg)] border border-line p-4 h-fit lg:sticky lg:top-4 overflow-hidden">
+          {/* w-full + min-w-0: grid-cell должен держать full width, иначе
+              flex-shrink контента (e.g. при переключении tab'ов) делает
+              aside`у hopeful auto-width и интерфейс «прыгает». */}
+          <aside className="w-full min-w-0 bg-surface rounded-[var(--r-lg)] border border-line p-4 h-fit lg:sticky lg:top-4 overflow-hidden">
             <Editor />
           </aside>
 
-          <section className="space-y-4">
+          <section className="space-y-4 min-w-0">
             <Preview />
           </section>
 
           {/* Правая колонка — табы Export | History (по аналогии с Editor'ом
               слева). Раньше были две stacked-панели; tabs экономят высоту
               и одинаковая визуальная грамматика с левой стороной. */}
-          <aside className="bg-surface rounded-[var(--r-lg)] border border-line p-4 h-fit lg:sticky lg:top-4 overflow-hidden">
+          <aside className="w-full min-w-0 bg-surface rounded-[var(--r-lg)] border border-line p-4 h-fit lg:sticky lg:top-4 overflow-hidden">
             <div className="flex gap-0.5 mb-3 bg-surface-2 rounded-[var(--r-md)] p-1 border border-line">
               <RightTabBtn
                 active={rightTab === "export"}
@@ -107,8 +110,9 @@ export default function HomePage() {
               />
             </div>
             {/* key — перезапускает CSS-fade-анимацию tab-content при
-                переключении, как в Editor.tsx */}
-            <div key={rightTab} className="tab-content">
+                переключении, как в Editor.tsx. w-full min-w-0 — стабильная
+                ширина при разных tab content. */}
+            <div key={rightTab} className="w-full min-w-0 tab-content">
               {rightTab === "export" ? <ExportPanel /> : <HistoryPanel />}
             </div>
           </aside>
