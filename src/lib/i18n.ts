@@ -148,6 +148,14 @@ const dict = {
     ru: "Скопировать как app/apple-icon.tsx (180×180 для iOS)",
     en: "Copy as app/apple-icon.tsx (180×180 for iOS)",
   },
+  "export.nextWithFonts": {
+    ru: "Подгружать custom-шрифт в ImageResponse",
+    en: "Load custom font in ImageResponse",
+  },
+  "export.nextWithFontsHint": {
+    ru: "Добавит fetch для ttf шрифта через Google Fonts API + fonts option. Без этого ImageResponse рендерит system sans-serif.",
+    en: "Add ttf fetch via Google Fonts API + fonts option. Without this ImageResponse renders system sans-serif.",
+  },
   "export.socialMeta": {
     ru: "Соц-карточка (OG-image)",
     en: "Social card (OG-image)",

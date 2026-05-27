@@ -70,6 +70,8 @@ export function ExportPanel() {
   const [fullMetaHead, setFullMetaHead] = React.useState(false);
   // Framework wrapper для HTML-сниппета. Default 'html' = plain (без обёртки).
   const [framework, setFramework] = React.useState<FrameworkId>("html");
+  // Включить custom-font fetch в Next.js ImageResponse сниппет (VOID-36).
+  const [nextWithFonts, setNextWithFonts] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const [open, setOpen] = React.useState(false);
@@ -372,15 +374,27 @@ export function ExportPanel() {
         >
           {t("export.frameworkCode")}
         </p>
+        {/* Опция «подгружать custom-шрифт» — только для source=text и
+            актуальна только для Next.js ImageResponse сниппетов. */}
+        {config.source === "text" && (
+          <div className="mb-2">
+            <Checkbox
+              checked={nextWithFonts}
+              onChange={setNextWithFonts}
+              label={t("export.nextWithFonts")}
+              title={t("export.nextWithFontsHint")}
+            />
+          </div>
+        )}
         <div className="space-y-1.5">
           <CopyCodeButton
             label="app/icon.tsx"
-            getCode={() => buildNextJsIconSnippet(config)}
+            getCode={() => buildNextJsIconSnippet(config, 32, nextWithFonts)}
             tooltip={t("export.copyNextIconHint")}
           />
           <CopyCodeButton
             label="app/apple-icon.tsx"
-            getCode={() => buildNextJsAppleIconSnippet(config)}
+            getCode={() => buildNextJsAppleIconSnippet(config, nextWithFonts)}
             tooltip={t("export.copyNextAppleIconHint")}
           />
           {/* Inline-SVG React/Vue components — для in-app brand. Бессмысленны
