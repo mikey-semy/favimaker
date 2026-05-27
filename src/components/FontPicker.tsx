@@ -12,6 +12,7 @@ import {
   type GoogleFont,
 } from "@/lib/google-fonts";
 import { toast } from "@/lib/toast";
+import { onShortcut } from "@/lib/shortcuts";
 import { TextInput } from "./inputs";
 import { Field } from "./Field";
 import { cn } from "@/lib/cn";
@@ -107,6 +108,16 @@ export function FontPicker() {
     setOpen(next);
     if (next) triggerLoadIfNeeded();
   };
+
+  // Ctrl/Cmd+K из GlobalShortcuts → toggle picker.
+  React.useEffect(() => {
+    return onShortcut("fontPicker", () => {
+      handleToggleOpen();
+    });
+    // handleToggleOpen зависит от `open` который меняется — рекурсивно
+    // переподписываемся. Это OK: onShortcut.unsubscribe дёшев.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   // Скролл к выбранной/активной опции при ↑↓
   React.useEffect(() => {

@@ -55,6 +55,13 @@ export function GlobalShortcuts() {
         emitShortcut("download");
         return;
       }
+
+      // Ctrl/Cmd+K — toggle FontPicker (через event-bus → FontPicker)
+      if (key === "k") {
+        e.preventDefault();
+        emitShortcut("fontPicker");
+        return;
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
