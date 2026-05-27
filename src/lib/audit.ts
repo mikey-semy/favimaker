@@ -9,7 +9,7 @@
  * юзер сам решает что добавить через favimaker.
  */
 
-export type AuditCategory = "favicon" | "pwa" | "social" | "general";
+export type AuditCategory = "favicon" | "pwa" | "social" | "general" | "manifest";
 export type AuditStatus = "ok" | "missing" | "warn";
 
 export type AuditCheck = {
@@ -227,4 +227,143 @@ export async function fetchHtmlViaCorsProxy(url: string): Promise<string> {
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+// ── Manifest content audit ──────────────────────────────────────────────
+// Если на странице нашёлся <link rel="manifest" href="...">, fetch'им сам
+// manifest.json через тот же CORS-proxy и валидируем поля по PWA Lighthouse
+// criteria. Возвращаем дополнительные AuditCheck'и.
+
+type ManifestIcon = {
+  src?: string;
+  sizes?: string;
+  type?: string;
+  purpose?: string;
+};
+
+type Manifest = {
+  name?: string;
+  short_name?: string;
+  start_url?: string;
+  display?: string;
+  icons?: ManifestIcon[];
+  theme_color?: string;
+  background_color?: string;
+};
+
+/** Извлечь href из <link rel="manifest"> + резолвнуть относительно base URL. */
+export function extractManifestUrl(html: string, baseUrl?: string): string | null {
+  if (typeof window === "undefined" || typeof DOMParser === "undefined") return null;
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const link = doc.head?.querySelector<HTMLLinkElement>("link[rel='manifest']");
+  const href = link?.getAttribute("href");
+  if (!href) return null;
+  if (!baseUrl) return href;
+  try {
+    return new URL(href, baseUrl).toString();
+  } catch {
+    return href;
+  }
+}
+
+/** Fetch manifest.json через CORS-proxy + validate. */
+export async function fetchAndAuditManifest(manifestUrl: string): Promise<AuditCheck[]> {
+  const proxied = `https://corsproxy.io/?url=${encodeURIComponent(manifestUrl)}`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15_000);
+  let manifest: Manifest;
+  try {
+    const res = await fetch(proxied, { signal: controller.signal });
+    if (!res.ok) throw new Error(`Manifest fetch ${res.status}`);
+    manifest = (await res.json()) as Manifest;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+  return auditManifestContent(manifest);
+}
+
+/** Pure-функция: применить PWA Lighthouse-критерии к parsed manifest. */
+export function auditManifestContent(manifest: Manifest): AuditCheck[] {
+  const checks: AuditCheck[] = [];
+
+  checks.push({
+    id: "manifest.name",
+    category: "manifest",
+    status: manifest.name?.trim() ? "ok" : "missing",
+    labelKey: "audit.manifestName",
+    details: manifest.name?.trim(),
+  });
+  checks.push({
+    id: "manifest.short_name",
+    category: "manifest",
+    status: manifest.short_name?.trim() ? "ok" : "warn",
+    labelKey: "audit.manifestShortName",
+  });
+  checks.push({
+    id: "manifest.start_url",
+    category: "manifest",
+    status: manifest.start_url?.trim() ? "ok" : "missing",
+    labelKey: "audit.manifestStartUrl",
+    details: manifest.start_url?.trim(),
+  });
+
+  const validDisplay = ["standalone", "minimal-ui", "fullscreen"];
+  const hasValidDisplay = manifest.display && validDisplay.includes(manifest.display);
+  checks.push({
+    id: "manifest.display",
+    category: "manifest",
+    status: hasValidDisplay ? "ok" : manifest.display === "browser" ? "warn" : "missing",
+    labelKey: "audit.manifestDisplay",
+    details: manifest.display,
+  });
+
+  const icons = manifest.icons ?? [];
+  // Любая icon entry где sizes включает «192x192» и type/расширение = png
+  const has192 = icons.some(
+    (i) =>
+      (i.sizes ?? "").split(/\s+/).includes("192x192") &&
+      (i.type === "image/png" || (i.src ?? "").toLowerCase().endsWith(".png")),
+  );
+  const has512 = icons.some(
+    (i) =>
+      (i.sizes ?? "").split(/\s+/).includes("512x512") &&
+      (i.type === "image/png" || (i.src ?? "").toLowerCase().endsWith(".png")),
+  );
+  checks.push({
+    id: "manifest.icon192",
+    category: "manifest",
+    status: has192 ? "ok" : "missing",
+    labelKey: "audit.manifestIcon192",
+  });
+  checks.push({
+    id: "manifest.icon512",
+    category: "manifest",
+    status: has512 ? "ok" : "missing",
+    labelKey: "audit.manifestIcon512",
+  });
+
+  const hasMaskable = icons.some((i) => (i.purpose ?? "").includes("maskable"));
+  checks.push({
+    id: "manifest.maskable",
+    category: "manifest",
+    status: hasMaskable ? "ok" : "warn",
+    labelKey: "audit.manifestMaskable",
+  });
+
+  checks.push({
+    id: "manifest.theme_color",
+    category: "manifest",
+    status: manifest.theme_color ? "ok" : "warn",
+    labelKey: "audit.manifestThemeColor",
+    details: manifest.theme_color,
+  });
+  checks.push({
+    id: "manifest.background_color",
+    category: "manifest",
+    status: manifest.background_color ? "ok" : "warn",
+    labelKey: "audit.manifestBackgroundColor",
+    details: manifest.background_color,
+  });
+
+  return checks;
 }
