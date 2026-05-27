@@ -3,7 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import { ArrowLeft, Check, Loader2, X, AlertCircle, Globe, Clipboard } from "lucide-react";
-import { auditHtmlHead, fetchHtmlViaCorsProxy, type AuditCheck, type AuditResult } from "@/lib/audit";
+import {
+  auditHtmlHead,
+  extractManifestUrl,
+  fetchAndAuditManifest,
+  fetchHtmlViaCorsProxy,
+  type AuditCheck,
+  type AuditResult,
+} from "@/lib/audit";
 import { useT } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { Button, TextInput } from "@/components/inputs";
@@ -20,7 +27,7 @@ export default function AuditPage() {
   const [result, setResult] = React.useState<AuditResult | null>(null);
   const [fetching, setFetching] = React.useState(false);
 
-  const runAudit = (htmlText: string) => {
+  const runAudit = async (htmlText: string, baseUrl?: string) => {
     if (!htmlText.trim()) {
       toast.error(t("audit.emptyInput"));
       return;
@@ -30,7 +37,27 @@ export default function AuditPage() {
       toast.error(t("audit.parseFailed"));
       return;
     }
-    setResult(r);
+
+    // Если в head нашёлся manifest-link — попробуем fetch + validate содержимое.
+    // Failure не блокирует — head-checks показываем как есть.
+    const manifestUrl = extractManifestUrl(htmlText, baseUrl);
+    if (manifestUrl) {
+      try {
+        const manifestChecks = await fetchAndAuditManifest(manifestUrl);
+        r.checks = [...r.checks, ...manifestChecks];
+        // recompute score
+        const total = r.checks.length;
+        const earned = r.checks.reduce(
+          (s, c) => s + (c.status === "ok" ? 1 : c.status === "warn" ? 0.5 : 0),
+          0,
+        );
+        r.score = total > 0 ? Math.round((earned / total) * 100) : 0;
+      } catch {
+        toast.error(t("audit.manifestFetchFailed"));
+      }
+    }
+
+    setResult({ ...r });
   };
 
   const handleFetchByUrl = async () => {
@@ -43,7 +70,7 @@ export default function AuditPage() {
     try {
       const fetched = await fetchHtmlViaCorsProxy(trimmed);
       setHtml(fetched);
-      runAudit(fetched);
+      await runAudit(fetched, trimmed);
     } catch {
       toast.error(t("audit.fetchFailed"));
     } finally {
@@ -51,12 +78,15 @@ export default function AuditPage() {
     }
   };
 
-  const handleAuditPasted = () => runAudit(html);
+  const handleAuditPasted = () => {
+    void runAudit(html);
+  };
 
   const grouped = result
     ? {
         favicon: result.checks.filter((c) => c.category === "favicon"),
         pwa: result.checks.filter((c) => c.category === "pwa"),
+        manifest: result.checks.filter((c) => c.category === "manifest"),
         social: result.checks.filter((c) => c.category === "social"),
         general: result.checks.filter((c) => c.category === "general"),
       }
@@ -160,6 +190,9 @@ export default function AuditPage() {
 
             <CategoryBlock title={t("audit.catFavicon")} checks={grouped.favicon} />
             <CategoryBlock title={t("audit.catPwa")} checks={grouped.pwa} />
+            {grouped.manifest.length > 0 && (
+              <CategoryBlock title={t("audit.catManifest")} checks={grouped.manifest} />
+            )}
             <CategoryBlock title={t("audit.catSocial")} checks={grouped.social} />
             <CategoryBlock title={t("audit.catGeneral")} checks={grouped.general} />
           </div>

@@ -338,6 +338,26 @@ const dict = {
   "audit.twitterImage": { ru: "twitter:image", en: "twitter:image" },
   "audit.htmlTitle": { ru: "<title>", en: "<title>" },
   "audit.description": { ru: "meta description", en: "meta description" },
+  "audit.catManifest": { ru: "Содержимое manifest.json", en: "Manifest content" },
+  "audit.manifestFetchFailed": {
+    ru: "Manifest найден, но содержимое не удалось загрузить",
+    en: "Manifest link found, but content fetch failed",
+  },
+  "audit.manifestName": { ru: "name", en: "name" },
+  "audit.manifestShortName": { ru: "short_name", en: "short_name" },
+  "audit.manifestStartUrl": { ru: "start_url", en: "start_url" },
+  "audit.manifestDisplay": {
+    ru: "display (standalone/minimal-ui/fullscreen)",
+    en: "display (standalone/minimal-ui/fullscreen)",
+  },
+  "audit.manifestIcon192": { ru: "icon 192×192 (PNG)", en: "icon 192×192 (PNG)" },
+  "audit.manifestIcon512": { ru: "icon 512×512 (PNG)", en: "icon 512×512 (PNG)" },
+  "audit.manifestMaskable": {
+    ru: "maskable icon (Android adaptive)",
+    en: "maskable icon (Android adaptive)",
+  },
+  "audit.manifestThemeColor": { ru: "theme_color", en: "theme_color" },
+  "audit.manifestBackgroundColor": { ru: "background_color", en: "background_color" },
 
   // misc
   "msg.shareCopied": { ru: "Ссылка скопирована", en: "Link copied" },
