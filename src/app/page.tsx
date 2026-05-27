@@ -78,7 +78,12 @@ export default function HomePage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1600px] px-4 py-4 lg:px-6 lg:py-6 flex-1">
+      {/* w-full обязательно: <main> = flex-col, в column-flex cross-axis
+          stretch + mx-auto margins дают cross size = max-content детей
+          (грид) вместо 100% parent. Без w-full контейнер сжимается под
+          ширину контента активной вкладки Editor → aside «прыгает» по
+          ширине при переключении табов на мобильном (grid-cols-1). */}
+      <div className="w-full mx-auto max-w-[1600px] px-4 py-4 lg:px-6 lg:py-6 flex-1">
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr_300px] gap-3 lg:gap-4">
           {/* w-full + min-w-0: grid-cell должен держать full width, иначе
               flex-shrink контента (e.g. при переключении tab'ов) делает
