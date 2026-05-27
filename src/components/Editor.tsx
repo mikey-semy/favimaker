@@ -282,6 +282,37 @@ function BackgroundTab() {
           </Field>
         </>
       )}
+
+      {/* Dark-mode вариант: парная иконка для prefers-color-scheme: dark.
+          Когда включено — генерится favicon-dark.svg, в HTML-сниппет
+          добавляются парные SVG-link'и с media-query. */}
+      <div className="pt-3 mt-1 border-t border-line space-y-2">
+        <label className="flex items-center gap-2 cursor-pointer text-sm text-ink-2 hover:text-ink">
+          <input
+            type="checkbox"
+            checked={config.darkVariantEnabled}
+            onChange={(e) => set("darkVariantEnabled", e.target.checked)}
+            className="accent-accent"
+          />
+          {t("field.darkVariant")}
+        </label>
+        {config.darkVariantEnabled && (
+          <FieldRow>
+            <Field label={t("field.darkTextColor")}>
+              <ColorInput
+                value={config.darkTextColor}
+                onChange={(v) => set("darkTextColor", v)}
+              />
+            </Field>
+            <Field label={t("field.darkBgColor")}>
+              <ColorInput
+                value={config.darkBgColor}
+                onChange={(v) => set("darkBgColor", v)}
+              />
+            </Field>
+          </FieldRow>
+        )}
+      </div>
     </div>
   );
 }

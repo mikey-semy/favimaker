@@ -105,6 +105,9 @@ export type SnippetInclude = {
   themeColorLight?: string;
   /** Theme-color для тёмной темы (если задан — отдельный meta с media). */
   themeColorDark?: string;
+  /** Парные SVG-link tags с media="(prefers-color-scheme: light/dark)" для
+   *  переключения иконки между темами. Требует favicon-dark.svg в архиве. */
+  darkVariant?: boolean;
 };
 
 export function buildHtmlSnippet(include: SnippetInclude = {}): string {
@@ -144,8 +147,21 @@ export function buildHtmlSnippet(include: SnippetInclude = {}): string {
     lines.push("");
   }
 
-  // SVG идёт первым: современные браузеры приоритезируют его перед ico/png
-  if (flag("svg")) lines.push(`<link rel="icon" type="image/svg+xml" href="/favicon.svg">`);
+  // SVG идёт первым: современные браузеры приоритезируют его перед ico/png.
+  // При darkVariant эмитим парные link'и с media — браузер сам выберет
+  // подходящий по prefers-color-scheme. Без darkVariant — обычный single.
+  if (flag("svg")) {
+    if (include.darkVariant === true) {
+      lines.push(
+        `<link rel="icon" type="image/svg+xml" href="/favicon.svg" media="(prefers-color-scheme: light)">`,
+      );
+      lines.push(
+        `<link rel="icon" type="image/svg+xml" href="/favicon-dark.svg" media="(prefers-color-scheme: dark)">`,
+      );
+    } else {
+      lines.push(`<link rel="icon" type="image/svg+xml" href="/favicon.svg">`);
+    }
+  }
   if (flag("ico")) lines.push(`<link rel="icon" href="/favicon.ico" sizes="any">`);
   if (flag("pngBrowser")) {
     lines.push(`<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">`);

@@ -209,6 +209,22 @@ export async function renderToSvgString(config: FaviconConfig): Promise<string |
 }
 
 /**
+ * Применить dark-override к config: textColor и bgColor берутся из dark-полей,
+ * bgMode форсируется в "solid" (gradient в dark MVP не поддерживается —
+ * слишком много полей дублировать ради краевого кейса).
+ *
+ * Полезно для рендера парных иконок (favicon-dark.svg / favicon-dark.png).
+ */
+export function withDarkOverride(config: FaviconConfig): FaviconConfig {
+  return {
+    ...config,
+    textColor: config.darkTextColor,
+    bgMode: "solid",
+    bgColor: config.darkBgColor,
+  };
+}
+
+/**
  * Safari pinned-tab SVG: монохромный силуэт без фона/формы/тени/бордера.
  * Safari использует только alpha-канал — заливает финальную иконку цветом
  * из атрибута `color` на <link rel="mask-icon">. В файле фиксируем чёрный

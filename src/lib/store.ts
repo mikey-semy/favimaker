@@ -28,6 +28,18 @@ export const useConfig = create<ConfigStore>()(
       reset: () => set({ config: DEFAULT_CONFIG }),
       replace: (next) => set({ config: next }),
     }),
-    { name: "favimaker.config.v1" },
+    {
+      name: "favimaker.config.v1",
+      // Защита от регрессий: всегда мержим DEFAULT_CONFIG поверх persisted —
+      // любой новый ключ (как darkVariantEnabled в VOID-14) автоматически
+      // появится у старых юзеров со значением по умолчанию.
+      merge: (persisted, current) => {
+        const p = persisted as { config?: Partial<FaviconConfig> } | undefined;
+        return {
+          ...current,
+          config: { ...DEFAULT_CONFIG, ...(p?.config ?? {}) },
+        };
+      },
+    },
   ),
 );

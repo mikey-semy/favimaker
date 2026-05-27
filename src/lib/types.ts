@@ -71,6 +71,14 @@ export type FaviconConfig = {
   /** Бордер */
   borderWidth: number;
   borderColor: string;
+
+  /** Dark-mode вариант: парная иконка для prefers-color-scheme: dark.
+   *  Когда enabled, экспорт добавляет favicon-dark.svg + media-query
+   *  link tags в HTML-сниппет. Цвета — переопределение базового config
+   *  (текст и фон), остальные поля (shape/font/source/etc) наследуются. */
+  darkVariantEnabled: boolean;
+  darkTextColor: string;
+  darkBgColor: string;
 };
 
 export const DEFAULT_CONFIG: FaviconConfig = {
@@ -108,6 +116,10 @@ export const DEFAULT_CONFIG: FaviconConfig = {
 
   borderWidth: 0,
   borderColor: "#000000",
+
+  darkVariantEnabled: false,
+  darkTextColor: "#ffffff",
+  darkBgColor: "#0a0a0f",
 };
 
 /** Целевые размеры PNG для экспорта. */
