@@ -82,6 +82,11 @@ export type FaviconConfig = {
   darkVariantEnabled: boolean;
   darkTextColor: string;
   darkBgColor: string;
+
+  /** Embed glyph paths в SVG favicon вместо <text>. Делает SVG self-contained
+   *  (правильный шрифт в standalone-контексте без CSS сайта). Cost: лазя
+   *  тянет ~300КБ opentype.js + 1-2с на fetch ttf при export'е. */
+  embedFontInSvg: boolean;
 };
 
 export const DEFAULT_CONFIG: FaviconConfig = {
@@ -124,6 +129,8 @@ export const DEFAULT_CONFIG: FaviconConfig = {
   darkVariantEnabled: false,
   darkTextColor: "#ffffff",
   darkBgColor: "#0a0a0f",
+
+  embedFontInSvg: false,
 };
 
 /** Целевые размеры PNG для экспорта. */

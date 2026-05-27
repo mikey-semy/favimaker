@@ -11,6 +11,7 @@
  * font-family как fallback на sans-serif. Для идеальной типографии нужен
  * font-to-path (issue под этим в backlog'е).
  */
+import { renderTextAsSvgPath } from "./font-loader";
 import type { FaviconConfig } from "./types";
 
 const SIZE = 100;
@@ -203,6 +204,32 @@ function renderBorder(config: FaviconConfig): string {
   return `<rect x="${w / 2}" y="${w / 2}" width="${100 - w}" height="${100 - w}" fill="none" stroke="${color}" stroke-width="${w}"/>`;
 }
 
+/**
+ * Заменить <text>-блок на font-as-path для одной строки. Возвращает null
+ * если font fetch / parse / path-generation упали — caller fallback'нётся
+ * на обычный renderTextSvg.
+ *
+ * Только single-line (text2 пустой) — multi-line с разными scale'ами на
+ * линию — overkill для font-path версии (редкий use-case).
+ */
+async function renderTextSvgWithFontPath(config: FaviconConfig): Promise<string | null> {
+  if (config.source !== "text" || !config.text || config.text2) return null;
+  const baseSize = (config.fontSizePct / 100) * SIZE;
+  const strokeWidth =
+    config.textStrokeWidth > 0 ? (config.textStrokeWidth / 100) * SIZE : 0;
+  return renderTextAsSvgPath(
+    config.text,
+    config.fontFamily,
+    config.fontWeight,
+    baseSize,
+    SIZE,
+    config.textColor,
+    strokeWidth > 0
+      ? { color: config.textStrokeColor ?? "#000000", widthPx: strokeWidth }
+      : undefined,
+  );
+}
+
 /** Главный экспорт: вернёт SVG-строку или null для source=image. */
 export async function renderToSvgString(config: FaviconConfig): Promise<string | null> {
   if (config.source === "image") return null;
@@ -212,8 +239,18 @@ export async function renderToSvgString(config: FaviconConfig): Promise<string |
   const { defs: shadowDefs, filterAttr: shadowAttr } = shadowFilter(config);
 
   const bgEl = shapeBgRect(config, bgFill);
-  const rawContent =
-    config.source === "icon" ? await renderIconSvg(config) : renderTextSvg(config);
+
+  // Embed font as path: только text-source, single-line, юзер явно включил.
+  // Fallback на <text> если что-то упало (нет сети / opentype не распарсил).
+  let rawContent: string;
+  if (config.source === "icon") {
+    rawContent = await renderIconSvg(config);
+  } else if (config.embedFontInSvg && config.source === "text") {
+    const pathSvg = await renderTextSvgWithFontPath(config);
+    rawContent = pathSvg ?? renderTextSvg(config);
+  } else {
+    rawContent = renderTextSvg(config);
+  }
   // Тень оборачиваем только содержимое (text/icon), чтобы не давать её
   // фону — как в canvas-рендере. Если shadow off — обёртка не нужна.
   const content = shadowAttr ? `<g${shadowAttr}>${rawContent}</g>` : rawContent;

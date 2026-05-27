@@ -192,6 +192,18 @@ function SourceTab() {
               />
             </Field>
           </FieldRow>
+          {/* Embed font as path в SVG favicon — гарантирует правильный шрифт
+              в standalone-контексте без CSS сайта. Стоит ~300КБ lazy
+              opentype.js + ~1-2с на fetch ttf при экспорте. */}
+          <label className="flex items-center gap-2 cursor-pointer text-xs text-ink-2 hover:text-ink py-1">
+            <input
+              type="checkbox"
+              checked={config.embedFontInSvg}
+              onChange={(e) => set("embedFontInSvg", e.target.checked)}
+              className="accent-accent"
+            />
+            <span suppressHydrationWarning>{t("field.embedFontInSvg")}</span>
+          </label>
         </>
       )}
 
