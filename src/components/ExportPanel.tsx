@@ -10,7 +10,7 @@ import {
   type ExportInclude,
 } from "@/lib/export";
 import { useExportInclude } from "@/lib/export-include";
-import { buildHtmlSnippet } from "@/lib/manifest";
+import { buildHtmlSnippet, themeColorFromConfig } from "@/lib/manifest";
 import {
   buildNextJsAppleIconSnippet,
   buildNextJsIconSnippet,
@@ -61,6 +61,9 @@ export function ExportPanel() {
   // подобно appName (не persist'ится между перезагрузками — упрощение MVP).
   const [siteDescription, setSiteDescription] = React.useState("");
   const [siteUrl, setSiteUrl] = React.useState("");
+  // Full meta head — opt-in, добавляет theme-color/application-name/
+  // apple-mobile-web-app-* meta в HTML-сниппет.
+  const [fullMetaHead, setFullMetaHead] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const [open, setOpen] = React.useState(false);
@@ -93,6 +96,7 @@ export function ExportPanel() {
       const blob = await buildFaviconZip(config, appName, locale, include, {
         description: siteDescription,
         url: siteUrl,
+        fullMetaHead,
       });
       downloadBlob(blob, `favicon-${(appName || "site").toLowerCase()}.zip`);
       try {
@@ -114,6 +118,7 @@ export function ExportPanel() {
     addToHistory,
     siteDescription,
     siteUrl,
+    fullMetaHead,
   ]);
 
   // Подписка на Ctrl/Cmd+S из GlobalShortcuts — single source для скачивания.
@@ -140,6 +145,11 @@ export function ExportPanel() {
       socialTitle: appName,
       socialDescription: siteDescription,
       socialUrl: siteUrl,
+      fullMetaHead,
+      // Theme-color из config: bgColor для solid, gradient.from для gradient,
+      // белый для transparent. Юзер увидит реальный цвет страницы при
+      // загрузке на мобильном Chrome (адресная строка перекрашивается).
+      themeColorLight: themeColorFromConfig(config),
     });
     try {
       await navigator.clipboard.writeText(snippet);
@@ -218,6 +228,12 @@ export function ExportPanel() {
                 type="url"
               />
             </div>
+            <Checkbox
+              checked={fullMetaHead}
+              onChange={setFullMetaHead}
+              label={t("export.fullMetaHead")}
+              title={t("export.fullMetaHeadHint")}
+            />
           </div>
         )}
       </div>

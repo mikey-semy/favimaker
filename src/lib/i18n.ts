@@ -150,6 +150,14 @@ const dict = {
     en: "Short site description",
   },
   "export.siteUrl": { ru: "URL сайта (canonical)", en: "Site URL (canonical)" },
+  "export.fullMetaHead": {
+    ru: "Полный <head>-блок (theme-color, application-name…)",
+    en: "Full <head> block (theme-color, application-name…)",
+  },
+  "export.fullMetaHeadHint": {
+    ru: "Добавит meta description, theme-color, application-name, apple-mobile-web-app-* в HTML-сниппет",
+    en: "Adds meta description, theme-color, application-name, apple-mobile-web-app-* to the HTML snippet",
+  },
   "export.copyReactComponentHint": {
     ru: "React-компонент с inline-SVG и size-prop",
     en: "React component with inline SVG and size prop",

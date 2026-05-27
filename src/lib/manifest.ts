@@ -1,6 +1,7 @@
 import type { FaviconConfig } from "./types";
 
-function themeColorFromConfig(config: FaviconConfig): string {
+/** Цвет для meta theme-color / manifest theme_color / browserconfig TileColor. */
+export function themeColorFromConfig(config: FaviconConfig): string {
   if (config.bgMode === "solid") return config.bgColor;
   if (config.bgMode === "gradient") return config.bgGradient.from;
   return "#ffffff";
@@ -96,12 +97,52 @@ export type SnippetInclude = {
   socialTitle?: string;
   socialDescription?: string;
   socialUrl?: string;
+  /** Полный head-блок: theme-color, application-name, apple-mobile-web-app-*,
+   *  generic description. По умолчанию off — для тех кто хочет только favicons.
+   *  При включении использует те же socialTitle/Description/Color что и OG. */
+  fullMetaHead?: boolean;
+  /** Theme-color для светлой темы (используется в fullMetaHead). */
+  themeColorLight?: string;
+  /** Theme-color для тёмной темы (если задан — отдельный meta с media). */
+  themeColorDark?: string;
 };
 
 export function buildHtmlSnippet(include: SnippetInclude = {}): string {
   // Дефолт для bool-флагов = true (для старых вызовов без аргумента — full snippet)
   const flag = (key: keyof SnippetInclude) => include[key] !== false;
   const lines: string[] = ["<!-- Сгенерировано favimaker. Положите все файлы в /public корня сайта. -->"];
+
+  // Full meta head — opt-in блок ДО favicon-link'ов, как принято в HTML.
+  // theme-color / application-name / apple-mobile-web-app-* / generic description.
+  if (include.fullMetaHead === true) {
+    const title = include.socialTitle?.trim();
+    const desc = include.socialDescription?.trim();
+    const lightColor = include.themeColorLight?.trim();
+    const darkColor = include.themeColorDark?.trim();
+
+    if (title) {
+      lines.push(`<meta name="application-name" content="${escapeHtml(title)}">`);
+      lines.push(`<meta name="apple-mobile-web-app-title" content="${escapeHtml(title)}">`);
+    }
+    if (desc) {
+      lines.push(`<meta name="description" content="${escapeHtml(desc)}">`);
+    }
+    if (lightColor && darkColor) {
+      // Светлая + тёмная темы через media-query
+      lines.push(
+        `<meta name="theme-color" media="(prefers-color-scheme: light)" content="${escapeHtml(lightColor)}">`,
+      );
+      lines.push(
+        `<meta name="theme-color" media="(prefers-color-scheme: dark)" content="${escapeHtml(darkColor)}">`,
+      );
+    } else if (lightColor) {
+      // Один цвет — без media-query
+      lines.push(`<meta name="theme-color" content="${escapeHtml(lightColor)}">`);
+    }
+    lines.push(`<meta name="apple-mobile-web-app-capable" content="yes">`);
+    lines.push(`<meta name="apple-mobile-web-app-status-bar-style" content="default">`);
+    lines.push("");
+  }
 
   // SVG идёт первым: современные браузеры приоритезируют его перед ico/png
   if (flag("svg")) lines.push(`<link rel="icon" type="image/svg+xml" href="/favicon.svg">`);
