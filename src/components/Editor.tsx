@@ -69,8 +69,11 @@ export function Editor() {
 
   return (
     <div className="flex flex-col h-full w-full min-w-0">
-      {/* Tab bar — icon + label stacked vertically, помещается 5 табов */}
-      <div className="flex gap-0.5 mb-3 bg-surface-2 rounded-[var(--r-md)] p-1 border border-line">
+      {/* Tab bar — icon + label stacked vertically, помещается 5 табов.
+          overflow-x-auto + min-w-0 на родителе позволяет горизонтальный
+          скролл когда узкий viewport не вмещает 5 кнопок с лейблами
+          (5×"Готовые стили"/"Эффекты" ≈ 320px min при text-[9px]). */}
+      <div className="flex gap-0.5 mb-3 bg-surface-2 rounded-[var(--r-md)] p-1 border border-line overflow-x-auto">
         {TABS.map((tDef) => {
           const Icon = tDef.icon;
           const active = tab === tDef.id;
