@@ -300,7 +300,7 @@ const dict = {
 
   // Audit page
   "audit.title": { ru: "Аудит фавикона / meta", en: "Favicon / meta audit" },
-  "audit.backToEditor": { ru: "← К редактору", en: "← Back to editor" },
+  "audit.backToEditor": { ru: "К редактору", en: "Back to editor" },
   "audit.intro": {
     ru: "Проверьте свой сайт: какие favicon/PWA/social теги уже есть, а каких не хватает. Вставьте URL (fetch через CORS-proxy) или сразу HTML страницы.",
     en: "Check your site: which favicon/PWA/social tags are present, which are missing. Enter URL (fetched via CORS proxy) or paste page HTML directly.",

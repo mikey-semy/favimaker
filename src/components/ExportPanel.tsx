@@ -335,14 +335,9 @@ export function ExportPanel() {
       <div className="space-y-1.5">
         <Select
           value={framework}
-          onChange={(e) => setFramework(e.target.value as FrameworkId)}
-        >
-          {FRAMEWORKS.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.label}
-            </option>
-          ))}
-        </Select>
+          onChange={(v) => setFramework(v as FrameworkId)}
+          options={FRAMEWORKS.map((f) => ({ value: f.id, label: f.label }))}
+        />
         <p
           className="text-[10px] text-muted leading-tight px-0.5"
           suppressHydrationWarning

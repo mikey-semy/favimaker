@@ -160,15 +160,15 @@ function SourceTab() {
           <FieldRow>
             <Field label={t("field.fontWeight")} hint={`${config.fontWeight}`}>
               <Select
-                value={config.fontWeight}
-                onChange={(e) => set("fontWeight", Number(e.target.value))}
-              >
-                {[400, 500, 700, 900].map((w) => (
-                  <option key={w} value={w}>
-                    {w === 400 ? "Regular" : w === 500 ? "Medium" : w === 700 ? "Bold" : "Black"}
-                  </option>
-                ))}
-              </Select>
+                value={String(config.fontWeight)}
+                onChange={(v) => set("fontWeight", Number(v))}
+                options={[
+                  { value: "400", label: "Regular" },
+                  { value: "500", label: "Medium" },
+                  { value: "700", label: "Bold" },
+                  { value: "900", label: "Black" },
+                ]}
+              />
             </Field>
             <Field label={t("field.fontSize")} hint={`${config.fontSizePct}%`}>
               <Slider
@@ -286,20 +286,21 @@ function BackgroundTab() {
           <Field label={t("field.gradientDirection")}>
             <Select
               value={config.bgGradient.direction}
-              onChange={(e) =>
-                setGradient("direction", e.target.value as typeof config.bgGradient.direction)
+              onChange={(v) =>
+                setGradient("direction", v as typeof config.bgGradient.direction)
               }
-            >
-              <option value="to-br">{t("grad.br")}</option>
-              <option value="to-r">{t("grad.r")}</option>
-              <option value="to-b">{t("grad.b")}</option>
-              <option value="to-bl">{t("grad.bl")}</option>
-              <option value="to-tr">{t("grad.tr")}</option>
-              <option value="to-tl">{t("grad.tl")}</option>
-              <option value="to-t">{t("grad.t")}</option>
-              <option value="to-l">{t("grad.l")}</option>
-              <option value="radial">{t("grad.radial")}</option>
-            </Select>
+              options={[
+                { value: "to-br", label: t("grad.br") },
+                { value: "to-r", label: t("grad.r") },
+                { value: "to-b", label: t("grad.b") },
+                { value: "to-bl", label: t("grad.bl") },
+                { value: "to-tr", label: t("grad.tr") },
+                { value: "to-tl", label: t("grad.tl") },
+                { value: "to-t", label: t("grad.t") },
+                { value: "to-l", label: t("grad.l") },
+                { value: "radial", label: t("grad.radial") },
+              ]}
+            />
           </Field>
         </>
       )}
