@@ -10,6 +10,7 @@ import {
 } from "./manifest";
 import { renderToPngBlob } from "./renderer";
 import { renderOgImageToBlob } from "./og-renderer";
+import { buildAllSplashTasks, SPLASH_DEVICES } from "./splash-renderer";
 import { renderToPinnedTabSvg, renderToSvgString, withDarkOverride } from "./svg-render";
 import type { FaviconConfig } from "./types";
 
@@ -30,6 +31,9 @@ export type ExportInclude = {
   /** Open Graph image 1200×630 (Facebook/Twitter/LinkedIn/Telegram preview).
    *  По умолчанию on — большинство сайтов хотят соц-превью. */
   socialCard: boolean;
+  /** PWA iOS splash screens — per-device PNG + apple-touch-startup-image link tags.
+   *  Off по умолчанию: ~24 файла, нужны только для standalone-PWA на iOS. */
+  iosSplash: boolean;
   manifest: boolean;
   browserconfig: boolean;
   htmlSnippet: boolean;
@@ -47,6 +51,7 @@ export const DEFAULT_INCLUDE: ExportInclude = {
   maskable: true,
   mstile: true,
   socialCard: true,
+  iosSplash: false,
   manifest: true,
   browserconfig: true,
   htmlSnippet: true,
@@ -65,6 +70,8 @@ export const INCLUDE_FILE_COUNTS: Record<keyof ExportInclude, number> = {
   maskable: 2,
   mstile: 1,
   socialCard: 1,
+  // 12 устройств × 2 ориентации = 24 файла
+  iosSplash: SPLASH_DEVICES.length * 2,
   manifest: 1,
   browserconfig: 1,
   htmlSnippet: 1,
@@ -122,6 +129,7 @@ function buildReadmeText(locale: "ru" | "en"): string {
       "  mstile-150x150.png                       — Windows pinned tile",
       "  safari-pinned-tab.svg                    — Safari pinned tab (monochrome mask)",
       "  og-image.png (1200x630)                  — Open Graph / Twitter card preview",
+      "  apple-splash-*.png (×24, opt-in)         — iOS PWA splash screens (per device + orientation)",
       "  site.webmanifest                         — PWA manifest (with maskable variants)",
       "  browserconfig.xml                        — Windows tiles config",
       "  README.html-snippet.html                 — ready <link> tags for <head>",
@@ -154,6 +162,7 @@ function buildReadmeText(locale: "ru" | "en"): string {
     "  mstile-150x150.png                       — Windows pinned tile",
     "  safari-pinned-tab.svg                    — Safari pinned tab (монохромная маска)",
     "  og-image.png (1200x630)                  — Open Graph / Twitter card превью",
+    "  apple-splash-*.png (×24, opt-in)         — iOS PWA splash экраны (per device + orientation)",
     "  site.webmanifest                         — PWA-манифест (с maskable-вариантами)",
     "  browserconfig.xml                        — config для Windows tiles",
     "  README.html-snippet.html                 — готовые <link> для <head>",
@@ -253,6 +262,12 @@ export async function buildFaviconZip(
   const pinnedTabTask: Promise<string | null> = include.safariPinnedTab
     ? renderToPinnedTabSvg(config)
     : Promise.resolve(null);
+  // iOS splash screens (~24 файла) — отдельный массив тасков,
+  // присоединим к pngTasks в .then'е чтобы не плодить лишний await.
+  if (include.iosSplash) {
+    pngTasks.push(...buildAllSplashTasks(config));
+  }
+
   // Dark variant SVG — если юзер включил darkVariantEnabled И есть SVG.
   // Парная иконка для prefers-color-scheme: dark. Только SVG в MVP —
   // PNG-варианты удвоят размер архива, SVG-favicon у современных браузеров
@@ -319,6 +334,7 @@ export async function buildFaviconZip(
         darkVariant: include.svg && !!darkSvgString,
         themeColorDark:
           social.fullMetaHead && config.darkVariantEnabled ? config.darkBgColor : undefined,
+        iosSplash: include.iosSplash,
       }),
     );
   }
