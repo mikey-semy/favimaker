@@ -69,6 +69,12 @@ body {
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* На мобильных intrinsic min-width контента (tab bar 5×label, UA-default
+     slider 129px, и т.п.) превышает viewport. Без overflow-x:hidden грид
+     расширяется до min-content и aside «прыгает» по ширине при переключении
+     табов. Прячем горизонтальный скролл — внутренние scrollable-блоки
+     (tab bars) сами имеют overflow-x:auto где нужно. */
+  overflow-x: hidden;
   transition:
     background-color 0.2s ease,
     color 0.2s ease;

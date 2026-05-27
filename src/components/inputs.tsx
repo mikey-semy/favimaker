@@ -272,7 +272,9 @@ export function SegmentedControl<T extends string>({
       className={cn(
         // flex (не inline-flex) + min-w-0 на детях позволяет flex-1 действительно
         // делить ширину. Иначе на мобильном с 4 опциями элементы вылазили.
-        "flex rounded-[var(--r-md)] bg-surface-2 border border-line p-1 gap-0.5",
+        // overflow-x-auto: если 4+ опций с длинными лейблами не помещаются —
+        // горизонтальный скролл вместо overflow-clip.
+        "flex rounded-[var(--r-md)] bg-surface-2 border border-line p-1 gap-0.5 overflow-x-auto",
         className,
       )}
     >
@@ -283,7 +285,10 @@ export function SegmentedControl<T extends string>({
           onClick={() => onChange(opt.value)}
           title={opt.label}
           className={cn(
-            "flex flex-1 min-w-0 items-center justify-center rounded-[var(--r-sm)] font-medium transition-colors",
+            // shrink-0 чтобы кнопка имела intrinsic width = content (не сжималась
+            // до неразличимой ширины при overflow-scroll). flex-1 по-прежнему
+            // делит доступную ширину когда влезает.
+            "flex flex-1 shrink-0 items-center justify-center rounded-[var(--r-sm)] font-medium transition-colors",
             // Если есть иконка — стэк icon над label вертикально, помещается полный текст.
             // Без иконки — однострочный горизонтальный (для bg-mode например).
             opt.icon
