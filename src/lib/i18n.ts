@@ -75,6 +75,7 @@ const dict = {
   "shortcut.redo": { ru: "Повторить", en: "Redo" },
   "shortcut.download": { ru: "Скачать ZIP", en: "Download ZIP" },
   "shortcut.help": { ru: "Показать это окно", en: "Show this dialog" },
+  "shortcut.fontPicker": { ru: "Открыть выбор шрифта", en: "Open font picker" },
   "shortcut.helpTitle": { ru: "Клавиатурные сокращения", en: "Keyboard shortcuts" },
   "shortcut.helpFooter": {
     ru: "Хоткеи работают везде кроме инпутов и текстовых полей.",

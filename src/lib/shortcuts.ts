@@ -14,7 +14,8 @@ export type ShortcutAction =
   | "undo"
   | "redo"
   | "download"
-  | "help";
+  | "help"
+  | "fontPicker";
 
 /** Описание для UI-модала «Shortcuts». labelKey — i18n-ключ. */
 export type ShortcutDef = {
@@ -30,12 +31,14 @@ export type ShortcutLabelKey =
   | "shortcut.undo"
   | "shortcut.redo"
   | "shortcut.download"
-  | "shortcut.help";
+  | "shortcut.help"
+  | "shortcut.fontPicker";
 
 export const SHORTCUTS: ShortcutDef[] = [
   { action: "undo", key: "Z", modifiers: ["cmd"], labelKey: "shortcut.undo" },
   { action: "redo", key: "Z", modifiers: ["cmd", "shift"], labelKey: "shortcut.redo" },
   { action: "download", key: "S", modifiers: ["cmd"], labelKey: "shortcut.download" },
+  { action: "fontPicker", key: "K", modifiers: ["cmd"], labelKey: "shortcut.fontPicker" },
   { action: "help", key: "?", modifiers: [], labelKey: "shortcut.help" },
 ];
 
