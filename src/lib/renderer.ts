@@ -89,41 +89,31 @@ function drawContent(ctx: CanvasRenderingContext2D, size: number, config: Favico
     return;
   }
 
-  const value = config.source === "emoji" ? config.emoji : config.text;
-  if (!value) return;
+  // Лайны: для emoji всегда одна (эмодзи не стэкаем), для текста — text + text2
+  // если text2 непустой, иначе одна.
+  const lines: string[] =
+    config.source === "emoji"
+      ? [config.emoji].filter(Boolean)
+      : [config.text, config.text2].filter((s) => s && s.length > 0);
+  if (lines.length === 0) return;
 
-  // Авто-подгонка кегля под inner-зону: считаем от пользовательского fontSizePct,
-  // но если контент шире — уменьшаем чтобы влез с лёгким запасом.
+  // Авто-подгонка кегля. Для 2 линий шрифт ~ x0.55 (две строки влезают в ту
+  // же inner-зону с лёгким overlap-fallback'ом). Каждая линия дополнительно
+  // шринкается горизонтально если шире inner.
   const baseFontSize = (config.fontSizePct / 100) * size;
-  // Эмодзи рисуем системным emoji-stack БЕЗ доп. кавычек, текст —
-  // через одиночный quoted family + sans-serif fallback.
+  const lineFontSize = lines.length > 1 ? baseFontSize * 0.55 : baseFontSize;
+
   const fontStack =
     config.source === "emoji"
       ? `"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`
       : `"${config.fontFamily}", sans-serif`;
 
-  ctx.font = `${config.fontWeight} ${baseFontSize}px ${fontStack}`;
-  const measured = ctx.measureText(value);
-  const textWidth = measured.width;
-  const scale = textWidth > innerSize ? innerSize / textWidth : 1;
-  const finalFontSize = baseFontSize * scale;
-
-  ctx.font = `${config.fontWeight} ${finalFontSize}px ${fontStack}`;
   ctx.textAlign = "center";
-  // textBaseline=middle опирается на em-box (включая ascender/descender),
-  // визуально центр глифа смещён вверх. Используем alphabetic + сдвиг
-  // на основании реального bbox глифа — оптический центр.
   ctx.textBaseline = "alphabetic";
   if ("letterSpacing" in ctx) {
     (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing =
       `${config.letterSpacing}em`;
   }
-
-  // Замерим bbox чтобы сдвинуть Y в оптический центр
-  const finalMeasure = ctx.measureText(value);
-  const asc = finalMeasure.actualBoundingBoxAscent ?? finalFontSize * 0.7;
-  const desc = finalMeasure.actualBoundingBoxDescent ?? finalFontSize * 0.2;
-  const centerY = size / 2 + (asc - desc) / 2;
 
   if (config.shadow) {
     ctx.shadowColor = config.shadowColor;
@@ -131,15 +121,37 @@ function drawContent(ctx: CanvasRenderingContext2D, size: number, config: Favico
     ctx.shadowOffsetY = (config.shadowOffsetY / 100) * size;
   }
 
-  if (config.textStrokeWidth > 0) {
-    ctx.strokeStyle = config.textStrokeColor ?? "#000000";
-    ctx.lineWidth = (config.textStrokeWidth / 100) * size;
-    ctx.lineJoin = "round";
-    ctx.strokeText(value, size / 2, centerY);
-  }
+  // Для центрирования группы вертикально: считаем итоговую высоту блока
+  // (lineCount * lineFontSize * lineHeight) и сдвигаем стартовую Y вверх.
+  const LINE_HEIGHT = 1.0;
+  const totalBlockHeight = lines.length * lineFontSize * LINE_HEIGHT;
+  const blockStartY = (size - totalBlockHeight) / 2;
 
-  ctx.fillStyle = config.textColor;
-  ctx.fillText(value, size / 2, centerY);
+  for (let i = 0; i < lines.length; i++) {
+    const text = lines[i];
+    // Per-line горизонтальный auto-shrink
+    ctx.font = `${config.fontWeight} ${lineFontSize}px ${fontStack}`;
+    const measured = ctx.measureText(text);
+    const horizScale = measured.width > innerSize ? innerSize / measured.width : 1;
+    const finalFontSize = lineFontSize * horizScale;
+    ctx.font = `${config.fontWeight} ${finalFontSize}px ${fontStack}`;
+
+    // Оптический центр линии — alphabetic baseline + asc/desc сдвиг.
+    const m = ctx.measureText(text);
+    const asc = m.actualBoundingBoxAscent ?? finalFontSize * 0.7;
+    const desc = m.actualBoundingBoxDescent ?? finalFontSize * 0.2;
+    const lineCenterY = blockStartY + (i + 0.5) * lineFontSize * LINE_HEIGHT;
+    const baselineY = lineCenterY + (asc - desc) / 2;
+
+    if (config.textStrokeWidth > 0) {
+      ctx.strokeStyle = config.textStrokeColor ?? "#000000";
+      ctx.lineWidth = (config.textStrokeWidth / 100) * size;
+      ctx.lineJoin = "round";
+      ctx.strokeText(text, size / 2, baselineY);
+    }
+    ctx.fillStyle = config.textColor;
+    ctx.fillText(text, size / 2, baselineY);
+  }
 
   ctx.shadowColor = "transparent";
   ctx.shadowBlur = 0;

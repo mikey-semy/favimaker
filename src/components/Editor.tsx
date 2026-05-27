@@ -147,6 +147,15 @@ function SourceTab() {
             placeholder="F"
             maxLength={6}
           />
+          {/* Опциональная вторая строка (monogram). Когда непустая, обе
+              линии рендерятся стэком с уменьшенным кеглем. Подсказка для
+              юзера через placeholder. */}
+          <TextInput
+            value={config.text2}
+            onChange={(e) => set("text2", e.target.value)}
+            placeholder={t("field.text2Placeholder")}
+            maxLength={6}
+          />
           <FontPicker />
           <FieldRow>
             <Field label={t("field.fontWeight")} hint={`${config.fontWeight}`}>

@@ -25,6 +25,9 @@ export type FaviconConfig = {
   source: SourceMode;
   /** Текст (если source=text). 1-4 символа обычно. */
   text: string;
+  /** Опциональная вторая строка для monogram-стиля («AB» друг под другом).
+   *  Пустая строка = single-line режим. */
+  text2: string;
   /** Эмодзи (если source=emoji). */
   emoji: string;
   /** Имя иконки из lucide-react (если source=icon), например "Heart" / "Code". */
@@ -84,6 +87,7 @@ export type FaviconConfig = {
 export const DEFAULT_CONFIG: FaviconConfig = {
   source: "text",
   text: "F",
+  text2: "",
   emoji: "🦝",
   iconName: "Heart",
   iconStrokeWidth: 2,

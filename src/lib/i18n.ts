@@ -57,6 +57,10 @@ const dict = {
     ru: "Парная иконка для тёмной темы",
     en: "Pair icon for dark theme",
   },
+  "field.text2Placeholder": {
+    ru: "Вторая строка (для монограммы) — необязательно",
+    en: "Second line (for monogram) — optional",
+  },
   "field.darkTextColor": { ru: "Текст (тёмная)", en: "Text (dark)" },
   "field.darkBgColor": { ru: "Фон (тёмная)", en: "Background (dark)" },
 

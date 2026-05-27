@@ -106,21 +106,18 @@ function measureTextWidth(
 }
 
 function renderTextSvg(config: FaviconConfig): string {
-  const value = config.source === "emoji" ? config.emoji : config.text;
-  if (!value) return "";
+  // Лайны: для emoji одна (эмодзи не стэкаем), для текста — text+text2 если 2-я непустая.
+  const lines: string[] =
+    config.source === "emoji"
+      ? [config.emoji].filter(Boolean)
+      : [config.text, config.text2].filter((s) => s && s.length > 0);
+  if (lines.length === 0) return "";
+
   const padding = (config.paddingPct / 100) * SIZE;
   const inner = SIZE - padding * 2;
   const baseSize = (config.fontSizePct / 100) * SIZE;
+  const lineFontSize = lines.length > 1 ? baseSize * 0.55 : baseSize;
   const source = config.source === "emoji" ? "emoji" : "text";
-  const measured = measureTextWidth(
-    value,
-    config.fontFamily,
-    config.fontWeight,
-    baseSize,
-    source,
-  );
-  const scale = measured > inner ? inner / measured : 1;
-  const finalSize = baseSize * scale;
   const family =
     source === "emoji"
       ? `'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif`
@@ -129,7 +126,26 @@ function renderTextSvg(config: FaviconConfig): string {
     config.textStrokeWidth > 0
       ? ` stroke="${config.textStrokeColor ?? "#000"}" stroke-width="${((config.textStrokeWidth / 100) * SIZE).toFixed(2)}" stroke-linejoin="round" paint-order="stroke fill"`
       : "";
-  return `<text x="50" y="50" font-family="${escapeXml(family)}" font-weight="${config.fontWeight}" font-size="${finalSize.toFixed(2)}" letter-spacing="${config.letterSpacing}em" text-anchor="middle" dominant-baseline="central" fill="${config.textColor}"${stroke}>${escapeXml(value)}</text>`;
+
+  const LINE_HEIGHT = 1.0;
+  const totalBlockHeight = lines.length * lineFontSize * LINE_HEIGHT;
+  const blockStartY = (SIZE - totalBlockHeight) / 2;
+
+  return lines
+    .map((text, i) => {
+      const measured = measureTextWidth(
+        text,
+        config.fontFamily,
+        config.fontWeight,
+        lineFontSize,
+        source,
+      );
+      const horizScale = measured > inner ? inner / measured : 1;
+      const finalSize = lineFontSize * horizScale;
+      const cy = blockStartY + (i + 0.5) * lineFontSize * LINE_HEIGHT;
+      return `<text x="50" y="${cy.toFixed(2)}" font-family="${escapeXml(family)}" font-weight="${config.fontWeight}" font-size="${finalSize.toFixed(2)}" letter-spacing="${config.letterSpacing}em" text-anchor="middle" dominant-baseline="central" fill="${config.textColor}"${stroke}>${escapeXml(text)}</text>`;
+    })
+    .join("");
 }
 
 /** Динамически загружаем lucide и react-dom/server — не тянем в bundle если не нужно. */
