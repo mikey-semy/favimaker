@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Pipette } from "lucide-react";
+import * as SelectPrimitive from "@radix-ui/react-select";
+import { Check, ChevronDown, Pipette } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { toast } from "@/lib/toast";
 import { useT } from "@/lib/i18n";
@@ -40,23 +41,76 @@ export function NumberInput({
   );
 }
 
-export function Select({
+export type SelectOption<T extends string = string> = {
+  value: T;
+  label: React.ReactNode;
+};
+
+/**
+ * Custom Select на Radix Primitives. Заменили нативный <select> потому что
+ * системный dropdown игнорировал нашу тему (белый popup в dark mode и т.п.).
+ * Radix даёт portal'ный popup с полным контролем стилей.
+ *
+ * API: `options={[{value, label}]}` + `onChange(value)` — string-only по
+ * Radix-конвенции (всё через DOM). Числа конвертируются в строки на месте.
+ */
+export function Select<T extends string = string>({
+  value,
+  onChange,
+  options,
   className,
-  children,
-  ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  placeholder,
+}: {
+  value: T;
+  onChange: (value: T) => void;
+  options: SelectOption<T>[];
+  className?: string;
+  placeholder?: string;
+}) {
   return (
-    <select
-      {...props}
-      className={cn(
-        "w-full rounded-[var(--r-md)] bg-surface-2 border border-line px-3 py-2 text-sm text-ink",
-        "outline-none focus-visible:border-accent appearance-none cursor-pointer",
-        "bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22><path fill=%22%238a8a92%22 d=%22M3 5l3 3 3-3z%22/></svg>')] bg-no-repeat bg-[right_8px_center] pr-8",
-        className,
-      )}
-    >
-      {children}
-    </select>
+    <SelectPrimitive.Root value={value} onValueChange={(v) => onChange(v as T)}>
+      <SelectPrimitive.Trigger
+        className={cn(
+          "flex w-full items-center justify-between gap-2 rounded-[var(--r-md)] bg-surface-2 border border-line px-3 py-2 text-sm text-ink",
+          "outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20 cursor-pointer",
+          "data-[placeholder]:text-muted",
+          className,
+        )}
+      >
+        <SelectPrimitive.Value placeholder={placeholder} />
+        <SelectPrimitive.Icon asChild>
+          <ChevronDown className="size-3.5 text-muted shrink-0" />
+        </SelectPrimitive.Icon>
+      </SelectPrimitive.Trigger>
+      <SelectPrimitive.Portal>
+        <SelectPrimitive.Content
+          position="popper"
+          sideOffset={4}
+          className={cn(
+            "z-[100] min-w-[var(--radix-select-trigger-width)] max-h-[var(--radix-select-content-available-height)]",
+            "overflow-hidden rounded-[var(--r-md)] bg-surface border border-line shadow-xl",
+          )}
+        >
+          <SelectPrimitive.Viewport className="p-1">
+            {options.map((opt) => (
+              <SelectPrimitive.Item
+                key={opt.value}
+                value={opt.value}
+                className={cn(
+                  "relative flex items-center gap-2 px-2 py-1.5 pr-7 rounded-[var(--r-sm)] text-sm text-ink cursor-pointer outline-none",
+                  "data-[highlighted]:bg-surface-2 data-[state=checked]:text-accent",
+                )}
+              >
+                <SelectPrimitive.ItemText>{opt.label}</SelectPrimitive.ItemText>
+                <SelectPrimitive.ItemIndicator className="absolute right-2 inline-flex items-center">
+                  <Check className="size-3.5" />
+                </SelectPrimitive.ItemIndicator>
+              </SelectPrimitive.Item>
+            ))}
+          </SelectPrimitive.Viewport>
+        </SelectPrimitive.Content>
+      </SelectPrimitive.Portal>
+    </SelectPrimitive.Root>
   );
 }
 
