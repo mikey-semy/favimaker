@@ -107,3 +107,10 @@
 - [x] VOID-17 — Full meta-head opt-in (theme-color, application-name) · merged 2026-05-27 · #22
 - [x] VOID-14 — Dark-mode favicon variant (SVG + media-query) · merged 2026-05-27 · #24
 - [x] VOID-22 — Multi-line text (monogram) · merged 2026-05-27 · #25
+- [x] VOID-15 — PWA iOS splash screens (24 файла + media-query link tags) · merged 2026-05-27 · #27
+- [x] VOID-18 — Manifest validator (/audit page, paste-HTML + URL fetch) · merged 2026-05-27 · #28
+- [x] VOID-29 — Astro/Nuxt/Vite/SvelteKit/Remix snippets · merged 2026-05-27 · #29
+
+---
+
+**🎉 Все 21 фича плана закрыты.** Roadmap из плана исчерпан, дальше — backlog по запросу.
